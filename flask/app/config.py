@@ -49,3 +49,9 @@ class Config:
     )
     GEOCODING_TIMEOUT = int(os.getenv("GEOCODING_TIMEOUT", "10"))
     GEOCODING_RATE_LIMIT_SECONDS = float(os.getenv("GEOCODING_RATE_LIMIT_SECONDS", "1.1"))
+    IMPORT_BATCH_SIZE = int(os.getenv("IMPORT_BATCH_SIZE", "50"))
+    IMPORT_GEOCODE_DURING_IMPORT = os.getenv("IMPORT_GEOCODE_DURING_IMPORT", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+    }

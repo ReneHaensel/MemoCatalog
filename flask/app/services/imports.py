@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from io import BytesIO
 from typing import Any
 
+from flask import current_app
 from openpyxl import load_workbook
 
 from app.extensions import db
@@ -143,28 +144,51 @@ def _note_changed(note: BaseNote, item: dict[str, Any]) -> bool:
     return any(getattr(note, field) != item.get(field) for field in fields)
 
 
-def run_import(job: ImportJob) -> ImportJob:
+def _import_row(item: dict[str, Any]) -> None:
+    note = BaseNote.query.filter_by(catalog_number=item["catalog_number"]).first()
+    if note is None:
+        note = BaseNote(catalog_number=item["catalog_number"], is_active=True)
+        db.session.add(note)
+
+    for field in ["title", "country", "region_or_city", "address", "issue_year", "front_img", "back_img"]:
+        setattr(note, field, item.get(field))
+
+    if (
+        current_app.config["IMPORT_GEOCODE_DURING_IMPORT"]
+        and build_geocode_query(note)
+        and not note.has_coordinates
+    ):
+        geocode_note(note)
+
+
+def run_import_batch(job: ImportJob, batch_size: int | None = None) -> ImportJob:
+    if job.status == "completed":
+        return job
+
+    batch_size = batch_size or current_app.config["IMPORT_BATCH_SIZE"]
+    payload = job.payload or []
+    start = min(job.processed_rows, len(payload))
+    end = min(start + batch_size, len(payload))
+
     job.status = "running"
     db.session.commit()
 
-    for item in job.payload:
+    for item in payload[start:end]:
         if item.get("_action") == "skipped":
             job.processed_rows += 1
             continue
 
-        note = BaseNote.query.filter_by(catalog_number=item["catalog_number"]).first()
-        if note is None:
-            note = BaseNote(catalog_number=item["catalog_number"], is_active=True)
-            db.session.add(note)
-
-        for field in ["title", "country", "region_or_city", "address", "issue_year", "front_img", "back_img"]:
-            setattr(note, field, item.get(field))
-
-        if build_geocode_query(note) and not note.has_coordinates:
-            geocode_note(note)
+        _import_row(item)
         job.processed_rows += 1
         db.session.flush()
 
-    job.status = "completed"
+    if job.processed_rows >= len(payload):
+        job.status = "completed"
     db.session.commit()
+    return job
+
+
+def run_import(job: ImportJob) -> ImportJob:
+    while job.status != "completed":
+        run_import_batch(job, batch_size=current_app.config["IMPORT_BATCH_SIZE"])
     return job

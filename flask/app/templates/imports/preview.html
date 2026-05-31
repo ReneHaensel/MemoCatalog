@@ -8,10 +8,17 @@
   {% if job.status != "completed" %}
     <form method="post" action="{{ url_for('imports.run', job_id=job.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white">Import ausfuehren</button>
+      <button class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white">
+        {{ "Naechsten Stapel verarbeiten" if job.status == "running" else "Import starten" }}
+      </button>
     </form>
   {% endif %}
 </div>
+{% if job.total_rows %}
+  <div class="mb-5 h-2 overflow-hidden rounded bg-slate-200">
+    <div class="h-full rounded bg-emerald-600" style="width: {{ ((job.processed_rows / job.total_rows) * 100)|round(1) }}%"></div>
+  </div>
+{% endif %}
 <div class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
   {% for label, value in [('Neu', job.new_count),('Updates', job.update_count),('Unveraendert', job.unchanged_count),('Uebersprungen', job.skipped_count),('Geocoding', job.geocode_count)] %}
     <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-600">{{ label }}</p><p class="text-2xl font-semibold">{{ value }}</p></div>

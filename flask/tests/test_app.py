@@ -7,6 +7,7 @@ from app import create_app
 from app.extensions import db
 from app.models import BaseNote, User, UserCollectionEntry, WishlistEntry
 from app.services.geocoding import geocode_all_notes, geocode_note
+from app.services.imports import create_import_preview, run_import_batch
 
 
 class TestConfig:
@@ -22,6 +23,8 @@ class TestConfig:
     GEOCODING_USER_AGENT = "MemoCatalog tests"
     GEOCODING_TIMEOUT = 1
     GEOCODING_RATE_LIMIT_SECONDS = 0
+    IMPORT_BATCH_SIZE = 2
+    IMPORT_GEOCODE_DURING_IMPORT = False
 
 
 def test_app_smoke():
@@ -393,3 +396,34 @@ def test_admin_note_edit_redirects_to_catalog_detail():
 
         assert response.status_code == 302
         assert response.headers["Location"].endswith(f"/catalog/{note.id}")
+
+
+def test_import_runs_in_batches_without_geocoding():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        rows = [
+            {
+                "Land": "Deutschland",
+                "Region/BL/Ort": "Berlin",
+                "Nummer": f"DE-{index}",
+                "Bezeichnung": f"Import Note {index}",
+                "Jahr": 2026,
+                "Adresse": "Pariser Platz",
+            }
+            for index in range(3)
+        ]
+
+        job = create_import_preview("import.xlsx", rows, [])
+        run_import_batch(job)
+
+        assert job.processed_rows == 2
+        assert job.status == "running"
+        assert BaseNote.query.count() == 2
+
+        run_import_batch(job)
+
+        assert job.processed_rows == 3
+        assert job.status == "completed"
+        assert BaseNote.query.count() == 3
+        assert BaseNote.query.filter(BaseNote.latitude.is_not(None)).count() == 0

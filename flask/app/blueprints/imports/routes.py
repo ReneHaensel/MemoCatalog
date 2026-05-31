@@ -5,7 +5,7 @@ from flask import Blueprint, flash, redirect, render_template, url_for
 from app.blueprints.admin.routes import admin_required
 from app.forms import ImportUploadForm
 from app.models import ImportJob
-from app.services.imports import create_import_preview, parse_excel, run_import
+from app.services.imports import create_import_preview, parse_excel, run_import_batch
 
 bp = Blueprint("imports", __name__, url_prefix="/admin/import")
 
@@ -38,6 +38,11 @@ def run(job_id: int):
     if job.status == "completed":
         flash("Dieser Import wurde bereits ausgefuehrt.", "error")
     else:
-        run_import(job)
-        flash("Import abgeschlossen.", "success")
+        before = job.processed_rows
+        run_import_batch(job)
+        processed = job.processed_rows - before
+        if job.status == "completed":
+            flash("Import abgeschlossen.", "success")
+        else:
+            flash(f"{processed} Zeilen verarbeitet. Bitte den naechsten Stapel starten.", "success")
     return redirect(url_for("imports.preview", job_id=job.id))
