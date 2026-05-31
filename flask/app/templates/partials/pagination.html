@@ -1,0 +1,11 @@
+{% if notes.pages > 1 %}
+<nav class="mt-6 flex items-center justify-center gap-2">
+  {% for page in notes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+    {% if page %}
+      <a class="rounded border px-3 py-1.5 text-sm {{ 'border-emerald-700 bg-emerald-700 text-white' if page == notes.page else 'border-slate-300 bg-white hover:bg-slate-100' }}" href="{{ url_for('catalog.index', page=page, q=search, country=country, year=year, address=address, view=view, sort=sort) }}">{{ page }}</a>
+    {% else %}
+      <span class="px-2 text-slate-400">...</span>
+    {% endif %}
+  {% endfor %}
+</nav>
+{% endif %}

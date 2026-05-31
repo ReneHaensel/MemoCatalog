@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-[420px_1fr]">
+  <div class="rounded-lg border bg-white p-6">
+    <h1 class="text-2xl font-semibold">Excel-Import</h1>
+    <form method="post" enctype="multipart/form-data" class="mt-5 grid gap-4">
+      {{ form.hidden_tag() }}
+      <div>{{ form.file.label(class="block text-sm font-medium") }}{{ form.file(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
+      {{ form.submit(class="rounded bg-emerald-700 px-4 py-2 font-medium text-white") }}
+    </form>
+  </div>
+  <div class="rounded-lg border bg-white p-6">
+    <h2 class="font-semibold">Import-Jobs</h2>
+    <div class="mt-3 divide-y divide-slate-100">
+      {% for job in jobs %}
+        <a class="block py-3 hover:text-emerald-700" href="{{ url_for('imports.preview', job_id=job.id) }}">{{ job.filename }} · {{ job.status }} · {{ job.total_rows }} Zeilen</a>
+      {% else %}
+        <p class="text-sm text-slate-600">Noch keine Jobs.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

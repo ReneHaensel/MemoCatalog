@@ -1,0 +1,9 @@
+.venv/
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+memocatalog.db
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+data/geocode_cache.json

@@ -1,0 +1,37 @@
+<div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+  <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <thead class="bg-slate-100 text-left">
+      <tr>
+        {% if current_user.is_authenticated and not current_user.is_admin %}
+          <th class="px-4 py-3">Status</th>
+        {% endif %}
+        <th class="px-4 py-3">Titel</th>
+        <th class="px-4 py-3">Land</th>
+        <th class="px-4 py-3">Jahr</th>
+        <th class="px-4 py-3">Adresse/Ort</th>
+        <th class="px-4 py-3">Nummer</th>
+        <th class="px-4 py-3">Varianten</th>
+        <th class="px-4 py-3">GPS</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for note in notes.items %}
+        <tr>
+          {% if current_user.is_authenticated and not current_user.is_admin %}
+            <td class="px-4 py-3">
+              {% set toggle_mode = "table" %}
+              {% include "partials/catalog_item_toggles.html" %}
+            </td>
+          {% endif %}
+          <td class="px-4 py-3"><a class="font-medium hover:text-emerald-700" href="{{ url_for('catalog.detail', note_id=note.id) }}">{{ note.title }}</a></td>
+          <td class="px-4 py-3">{{ note.country }}</td>
+          <td class="px-4 py-3">{{ note.issue_year or "-" }}</td>
+          <td class="px-4 py-3">{{ note.address or note.region_or_city or "-" }}</td>
+          <td class="px-4 py-3">{{ note.catalog_number or "-" }}</td>
+          <td class="px-4 py-3">{{ note.variants|length }}</td>
+          <td class="px-4 py-3">{{ "ja" if note.has_coordinates else "nein" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

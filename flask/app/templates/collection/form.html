@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-6">
+  <h1 class="text-2xl font-semibold">{{ title }}</h1>
+  <form method="post" class="mt-5 grid gap-4">
+    {{ form.hidden_tag() }}
+    <div>{{ form.base_note_id.label(class="block text-sm font-medium") }}{{ form.base_note_id(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
+    <div>{{ form.variant_id.label(class="block text-sm font-medium") }}{{ form.variant_id(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div>{{ form.condition.label(class="block text-sm font-medium") }}{{ form.condition(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
+      <div>{{ form.quantity.label(class="block text-sm font-medium") }}{{ form.quantity(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
+    </div>
+    <div>{{ form.acquired_at.label(class="block text-sm font-medium") }}{{ form.acquired_at(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
+    <div>{{ form.personal_notes.label(class="block text-sm font-medium") }}{{ form.personal_notes(class="mt-1 w-full rounded border border-slate-300 px-3 py-2", rows=4) }}</div>
+    {{ form.submit(class="rounded bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800") }}
+  </form>
+</div>
+{% endblock %}

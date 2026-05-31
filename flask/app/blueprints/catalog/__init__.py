@@ -1,0 +1,1 @@
+# Catalog blueprint package marker.

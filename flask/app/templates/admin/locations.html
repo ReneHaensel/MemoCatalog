@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">Standorte</h1>
+  <div class="flex flex-wrap gap-2">
+    <form method="post" action="{{ url_for('admin.geocode_missing') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white">Fehlende Koordinaten berechnen</button>
+    </form>
+    <form method="post" action="{{ url_for('admin.geocode_all') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="rounded border border-emerald-700 bg-white px-4 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50">Alle neu berechnen</button>
+    </form>
+  </div>
+</div>
+<div class="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+  {% for country, count in countries %}
+    <div class="rounded-lg border bg-white p-4"><p class="text-sm text-slate-600">{{ country }}</p><p class="text-2xl font-semibold">{{ count }}</p></div>
+  {% endfor %}
+</div>
+<div class="overflow-x-auto rounded-lg border bg-white">
+  <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <thead class="bg-slate-100 text-left"><tr><th class="px-4 py-3">Schein</th><th class="px-4 py-3">Adresse</th><th class="px-4 py-3">Latitude</th><th class="px-4 py-3">Longitude</th><th class="px-4 py-3"></th></tr></thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for note in notes %}
+        <tr>
+          <td class="px-4 py-3">{{ note.title }}</td>
+          <td class="px-4 py-3">{{ note.address or note.region_or_city or "-" }}</td>
+          <td class="px-4 py-3">{{ note.latitude or "-" }}</td>
+          <td class="px-4 py-3">{{ note.longitude or "-" }}</td>
+          <td class="px-4 py-3 text-right">
+            <form method="post" action="{{ url_for('admin.note_geocode', note_id=note.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="text-sm text-emerald-700 hover:underline">Berechnen</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

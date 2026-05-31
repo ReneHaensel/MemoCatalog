@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Katalog · MemoCatalog{% endblock %}
+{% block content %}
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-semibold">Katalog</h1>
+    <p class="text-sm text-slate-600">{{ notes.total }} aktive Hauptscheine</p>
+  </div>
+  <div class="flex gap-2">
+    <a class="rounded border px-3 py-2 text-sm {{ 'bg-slate-900 text-white' if view == 'grid' else 'bg-white' }}" href="{{ url_for('catalog.index', q=search, country=country, year=year, address=address, sort=sort, view='grid') }}">Grid</a>
+    <a class="rounded border px-3 py-2 text-sm {{ 'bg-slate-900 text-white' if view == 'table' else 'bg-white' }}" href="{{ url_for('catalog.index', q=search, country=country, year=year, address=address, sort=sort, view='table') }}">Tabelle</a>
+    <form method="get">
+      <input type="hidden" name="q" value="{{ search }}">
+      <input type="hidden" name="country" value="{{ country }}">
+      <input type="hidden" name="year" value="{{ year }}">
+      <input type="hidden" name="address" value="{{ address }}">
+      <input type="hidden" name="view" value="{{ view }}">
+      <select class="rounded border border-slate-300 bg-white px-3 py-2 text-sm" name="sort" onchange="this.form.submit()">
+        {% for key, label in [('created','Neueste'),('year','Jahr'),('title','Titel'),('country','Land'),('address','Adresse'),('region','Region/Ort'),('catalog','Katalognummer')] %}
+          <option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+{% include "partials/filter_panel.html" %}
+{% if view == "table" %}
+  {% include "partials/note_table.html" %}
+{% else %}
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {% for note in notes.items %}
+      {% include "partials/note_card.html" %}
+    {% else %}
+      <p class="text-slate-600">Keine Treffer.</p>
+    {% endfor %}
+  </div>
+{% endif %}
+{% include "partials/pagination.html" %}
+{% endblock %}

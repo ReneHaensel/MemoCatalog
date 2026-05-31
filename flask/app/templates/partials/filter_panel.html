@@ -1,0 +1,19 @@
+<form method="get" class="mb-5 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-6">
+  <input class="rounded border border-slate-300 px-3 py-2 md:col-span-2" name="q" value="{{ search }}" placeholder="Suche">
+  <select class="rounded border border-slate-300 px-3 py-2" name="country">
+    <option value="">Alle Laender</option>
+    {% for item in countries %}
+      <option value="{{ item }}" {% if item == country %}selected{% endif %}>{{ item }}</option>
+    {% endfor %}
+  </select>
+  <select class="rounded border border-slate-300 px-3 py-2" name="year">
+    <option value="">Alle Jahre</option>
+    {% for item in years %}
+      <option value="{{ item }}" {% if item|string == year %}selected{% endif %}>{{ item }}</option>
+    {% endfor %}
+  </select>
+  <input class="rounded border border-slate-300 px-3 py-2" name="address" value="{{ address }}" placeholder="Adresse">
+  <button class="rounded bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800">Filtern</button>
+  <input type="hidden" name="view" value="{{ view }}">
+  <input type="hidden" name="sort" value="{{ sort }}">
+</form>

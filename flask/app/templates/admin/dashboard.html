@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-5 flex items-center justify-between gap-3">
+  <h1 class="text-2xl font-semibold">Admin</h1>
+  <div class="flex flex-wrap gap-2 text-sm">
+    <a class="rounded border bg-white px-3 py-2" href="{{ url_for('admin.note_new') }}">Hauptschein anlegen</a>
+    <a class="rounded border bg-white px-3 py-2" href="{{ url_for('admin.users') }}">Nutzer</a>
+    <a class="rounded border bg-white px-3 py-2" href="{{ url_for('admin.collections') }}">Sammlungen</a>
+    <a class="rounded border bg-white px-3 py-2" href="{{ url_for('admin.locations') }}">Standorte</a>
+    <a class="rounded border bg-white px-3 py-2" href="{{ url_for('imports.index') }}">Import</a>
+  </div>
+</div>
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {% for label, value in [('Hauptscheine', stats.notes),('Varianten', stats.variants),('Nutzer', stats.users),('Admins', stats.admins),('Sammlungseintraege', stats.collection_entries),('Wunschliste', stats.wishlist_entries),('Mit GPS', stats.with_coordinates),('Ohne GPS', stats.without_coordinates)] %}
+    <div class="rounded-lg border bg-white p-5"><p class="text-sm text-slate-600">{{ label }}</p><p class="text-3xl font-semibold">{{ value }}</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

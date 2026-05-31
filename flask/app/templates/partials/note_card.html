@@ -1,0 +1,21 @@
+<article class="rounded-lg border border-slate-200 bg-white p-4">
+  <a href="{{ url_for('catalog.detail', note_id=note.id) }}">
+    <div class="aspect-[16/9] overflow-hidden rounded bg-slate-100">
+      {% if note.front_img %}
+        <img src="{{ note.front_img }}" alt="{{ note.title }}" class="h-full w-full object-cover">
+      {% else %}
+        <div class="flex h-full items-center justify-center text-sm text-slate-400">Kein Bild</div>
+      {% endif %}
+    </div>
+    <h3 class="mt-3 line-clamp-2 font-semibold">{{ note.title }}</h3>
+  </a>
+  <dl class="mt-2 grid gap-1 text-sm text-slate-600">
+    <div>{{ note.country }}{% if note.issue_year %} · {{ note.issue_year }}{% endif %}</div>
+    <div>{{ note.region_or_city or note.address or "Ort offen" }}</div>
+    <div>Nr. {{ note.catalog_number or "-" }}</div>
+    <div>{{ note.variants|length }} Varianten · GPS {{ "ja" if note.has_coordinates else "nein" }}</div>
+  </dl>
+  <div class="mt-3 border-t border-slate-100 pt-3">
+    {% include "partials/catalog_item_toggles.html" %}
+  </div>
+</article>

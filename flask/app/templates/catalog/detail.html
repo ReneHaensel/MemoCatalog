@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ note.title }} · MemoCatalog{% endblock %}
+{% block head_extra %}
+  {% if note.has_coordinates %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+      .note-map-marker {
+        align-items: center;
+        background: #047857;
+        border: 3px solid #ffffff;
+        border-radius: 9999px;
+        box-shadow: 0 8px 20px rgb(15 23 42 / 0.25);
+        display: flex;
+        height: 28px;
+        justify-content: center;
+        width: 28px;
+      }
+
+      .note-map-marker::after {
+        background: #047857;
+        bottom: -7px;
+        content: "";
+        height: 12px;
+        position: absolute;
+        transform: rotate(45deg);
+        width: 12px;
+      }
+    </style>
+  {% endif %}
+{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{{ catalog_back_url }}" class="text-sm text-emerald-700 hover:underline">Zurueck zum Katalog</a>
+</div>
+<section class="grid gap-6 lg:grid-cols-[1fr_360px]">
+  <div>
+    <h1 class="text-3xl font-semibold">{{ note.title }}</h1>
+    <p class="mt-1 text-slate-600">{{ note.country }}{% if note.issue_year %} · {{ note.issue_year }}{% endif %} · {{ note.catalog_number or "ohne Nummer" }}</p>
+    <div class="mt-5 grid gap-4 md:grid-cols-2">
+      {% for image, label in [(note.front_img, 'Vorderseite'), (note.back_img, 'Rueckseite')] %}
+        <div class="rounded-lg border border-slate-200 bg-white p-3">
+          <div class="aspect-[16/9] overflow-hidden rounded bg-slate-100">
+            {% if image %}
+              <img src="{{ image }}" alt="{{ label }}" class="h-full w-full object-cover">
+            {% else %}
+              <div class="flex h-full items-center justify-center text-sm text-slate-400">{{ label }} fehlt</div>
+            {% endif %}
+          </div>
+          <p class="mt-2 text-sm font-medium">{{ label }}</p>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+      <h2 class="font-semibold">Varianten</h2>
+      <div class="mt-3 divide-y divide-slate-100">
+        {% for variant in note.variants %}
+          <div class="flex items-center justify-between gap-3 py-3">
+            <div>
+              <p class="font-medium">{{ variant.variant_type }}</p>
+              <p class="text-sm text-slate-600">{{ variant.catalog_number or "ohne Nummer" }}</p>
+            </div>
+            {% if current_user.is_authenticated and not current_user.is_admin %}
+              <form method="post" action="{{ url_for('catalog.collect', note_id=note.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="variant_id" value="{{ variant.id }}">
+                <button class="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100">Sammeln</button>
+              </form>
+            {% endif %}
+          </div>
+        {% else %}
+          <p class="py-3 text-sm text-slate-600">Keine Varianten erfasst.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <aside class="space-y-4">
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+      <h2 class="font-semibold">Details</h2>
+      <dl class="mt-3 space-y-2 text-sm">
+        <div class="flex justify-between gap-4"><dt>Adresse</dt><dd class="text-right">{{ note.address or "-" }}</dd></div>
+        <div class="flex justify-between gap-4"><dt>Ort</dt><dd class="text-right">{{ note.region_or_city or "-" }}</dd></div>
+        <div class="flex justify-between gap-4"><dt>GPS</dt><dd>{{ note.latitude or "-" }}, {{ note.longitude or "-" }}</dd></div>
+      </dl>
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <a class="mt-4 block w-full rounded bg-emerald-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-emerald-800" href="{{ url_for('admin.note_edit', note_id=note.id) }}">Hauptschein bearbeiten</a>
+      {% elif current_user.is_authenticated %}
+        <form class="mt-4" method="post" action="{{ url_for('catalog.collect', note_id=note.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="w-full rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">Hauptschein sammeln</button>
+        </form>
+        <form class="mt-2" method="post" action="{{ url_for('catalog.wishlist', note_id=note.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="w-full rounded border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100">Zur Wunschliste</button>
+        </form>
+      {% endif %}
+    </div>
+    {% if note.has_coordinates %}
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold">Karte</h2>
+        <div
+          id="note-location-map"
+          class="relative mt-3 aspect-video overflow-hidden rounded bg-emerald-50"
+          data-latitude="{{ note.latitude }}"
+          data-longitude="{{ note.longitude }}"
+          data-title="{{ note.title }}"
+        >
+          <div id="note-location-fallback" class="absolute inset-0 flex items-center justify-center">
+            <div class="relative flex h-full w-full items-center justify-center">
+              <span class="note-map-marker"></span>
+              <span class="absolute left-4 top-4 rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-emerald-900 shadow">
+                {{ note.latitude }}, {{ note.longitude }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </aside>
+</section>
+{% endblock %}
+{% block scripts %}
+  {% if note.has_coordinates %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const element = document.getElementById("note-location-map");
+        if (!element || !window.L) {
+          return;
+        }
+
+        const latitude = Number(element.dataset.latitude);
+        const longitude = Number(element.dataset.longitude);
+        const title = element.dataset.title || "Standort";
+        const fallback = document.getElementById("note-location-fallback");
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return;
+        }
+
+        if (fallback) {
+          fallback.hidden = true;
+        }
+
+        const map = L.map(element, {
+          scrollWheelZoom: false,
+        }).setView([latitude, longitude], 14);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+
+        /*const markerIcon = L.divIcon({
+          className: "",
+          html: '<span style="font-size: 32px;">📍</span>',
+          iconAnchor: [14, 32],
+          iconSize: [28, 32],
+          popupAnchor: [0, -32],
+        });*/
+
+        const markerIcon = new L.Icon({
+          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
+          });
+
+        L.marker([latitude, longitude], { icon: markerIcon })
+          .addTo(map)
+          .bindPopup(title);
+
+        window.setTimeout(function () {
+          map.invalidateSize();
+        }, 100);
+      });
+    </script>
+  {% endif %}
+{% endblock %}
