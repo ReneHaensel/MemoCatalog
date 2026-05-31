@@ -140,10 +140,12 @@ def geocode_note_result(note: BaseNote, *, force: bool = False) -> GeocodeResult
         return GeocodeResult(False, f"Unbekannter Geocoding-Provider: {provider}")
 
     for query in queries:
+        current_app.logger.info("Geocoding note_id=%s title=%r query=%r", note.id, note.title, query)
         cached = GeocodeCache.query.filter_by(query_text=query).first()
         if cached and cached.status == "found" and cached.latitude is not None and cached.longitude is not None and not force:
             note.latitude = cached.latitude
             note.longitude = cached.longitude
+            current_app.logger.info("Geocoding cache hit note_id=%s query=%r", note.id, query)
             return GeocodeResult(True, "Koordinaten aus dem Cache uebernommen.", query)
 
         result = _lookup_real_coordinates(query)
@@ -166,6 +168,13 @@ def geocode_note_result(note: BaseNote, *, force: bool = False) -> GeocodeResult
         note.latitude = latitude
         note.longitude = longitude
         _sync_json_cache(query, latitude, longitude)
+        current_app.logger.info(
+            "Geocoding success note_id=%s query=%r latitude=%s longitude=%s",
+            note.id,
+            query,
+            latitude,
+            longitude,
+        )
         return GeocodeResult(True, "Echte Koordinaten wurden berechnet.", query)
 
     current_app.logger.warning("No geocoding result for note %s. Tried: %s", note.id, queries)
@@ -191,7 +200,7 @@ def geocode_missing_notes(limit: int | None = None) -> GeocodeBatchResult:
     notes = query.all()
     count = 0
     for note in notes:
-        if geocode_note(note):
+        if geocode_note(note, force=True):
             count += 1
     db.session.commit()
     return GeocodeBatchResult(processed=len(notes), updated=count, failed=len(notes) - count)

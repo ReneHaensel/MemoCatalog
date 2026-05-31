@@ -5,8 +5,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import create_app
 from app.extensions import db
-from app.models import BaseNote, User, UserCollectionEntry, WishlistEntry
-from app.services.geocoding import geocode_all_notes, geocode_note
+from app.models import BaseNote, GeocodeCache, User, UserCollectionEntry, WishlistEntry
+from app.services.geocoding import geocode_all_notes, geocode_missing_notes, geocode_note
 from app.services.imports import create_import_preview, run_import_batch
 
 
@@ -35,6 +35,41 @@ def test_app_smoke():
         response = client.get("/")
         assert response.status_code == 200
         assert b"MemoCatalog" in response.data
+
+
+def test_navigation_for_guest_only_shows_catalog_menu_item():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        client = app.test_client()
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert b"Katalog" in response.data
+        assert b'href="/collection"' not in response.data
+        assert b'href="/collection/wishlist"' not in response.data
+        assert b'href="/stats"' not in response.data
+        assert b'href="/admin"' not in response.data
+
+
+def test_navigation_for_logged_in_user_shows_private_menu_items():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        user = User(username="collector", email="collector@example.test")
+        user.set_password("collector123")
+        db.session.add(user)
+        db.session.commit()
+
+        client = app.test_client()
+        client.post("/auth/login", data={"username": "collector", "password": "collector123"})
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert b"Katalog" in response.data
+        assert b"Sammlung" in response.data
+        assert b"Wunschliste" in response.data
+        assert b"Stats" in response.data
 
 
 def test_homepage_renders_world_map_locations():
@@ -235,6 +270,41 @@ def test_force_geocode_clears_old_coordinates_when_no_real_match(monkeypatch):
         assert note.longitude is None
 
 
+def test_geocode_missing_uses_force_mode_like_manual_calculation(monkeypatch):
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        note = BaseNote(
+            title="Fresh Note",
+            country="Deutschland",
+            region_or_city="Berlin",
+            address="Pariser Platz",
+            issue_year=2026,
+        )
+        db.session.add(note)
+        db.session.add(
+            GeocodeCache(
+                query_text="Pariser Platz, Berlin, Deutschland",
+                latitude=44.078692,
+                longitude=-9.35186,
+                status="found",
+            )
+        )
+        db.session.commit()
+
+        monkeypatch.setattr(
+            "app.services.geocoding._lookup_real_coordinates",
+            lambda query: (52.516275, 13.377704),
+        )
+
+        result = geocode_missing_notes()
+
+        assert result.processed == 1
+        assert result.updated == 1
+        assert note.latitude == 52.516275
+        assert note.longitude == 13.377704
+
+
 def test_admin_detail_shows_edit_instead_of_collection_actions():
     app = create_app(TestConfig)
     with app.app_context():
@@ -285,6 +355,11 @@ def test_catalog_user_can_toggle_collection_and_wishlist_from_index():
             base_note_id=note.id,
             variant_id=None,
         ).count() == 1
+        assert WishlistEntry.query.filter_by(
+            user_id=user.id,
+            base_note_id=note.id,
+            variant_id=None,
+        ).count() == 0
 
         response = client.post(
             f"/catalog/{note.id}/toggle-wishlist",
@@ -297,6 +372,11 @@ def test_catalog_user_can_toggle_collection_and_wishlist_from_index():
             base_note_id=note.id,
             variant_id=None,
         ).count() == 1
+        assert UserCollectionEntry.query.filter_by(
+            user_id=user.id,
+            base_note_id=note.id,
+            variant_id=None,
+        ).count() == 0
 
 
 def test_wishlist_page_uses_new_name_and_old_missing_url_redirects():
@@ -427,3 +507,35 @@ def test_import_runs_in_batches_without_geocoding():
         assert job.status == "completed"
         assert BaseNote.query.count() == 3
         assert BaseNote.query.filter(BaseNote.latitude.is_not(None)).count() == 0
+
+
+def test_admin_location_geocode_redirects_back_to_locations(monkeypatch):
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        admin = User(username="admin", email="admin@example.test", is_admin=True)
+        admin.set_password("admin123")
+        note = BaseNote(
+            title="Location Note",
+            country="Deutschland",
+            region_or_city="Berlin",
+            issue_year=2026,
+        )
+        db.session.add_all([admin, note])
+        db.session.commit()
+
+        monkeypatch.setattr(
+            "app.services.geocoding._lookup_real_coordinates",
+            lambda query: (52.516275, 13.377704),
+        )
+
+        client = app.test_client()
+        client.post("/auth/login", data={"username": "admin", "password": "admin123"})
+        response = client.post(
+            f"/admin/notes/{note.id}/geocode",
+            data={"next": "/admin/locations"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/admin/locations")

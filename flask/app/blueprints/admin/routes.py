@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import wraps
 from typing import Callable, TypeVar
 
-from flask import Blueprint, abort, flash, redirect, render_template, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -82,6 +82,7 @@ def note_edit(note_id: int):
 @admin_required
 def note_geocode(note_id: int):
     note = BaseNote.query.get_or_404(note_id)
+    next_url = request.form.get("next") or url_for("admin.note_edit", note_id=note.id)
     result = geocode_note_result(note, force=True)
     if result.success:
         db.session.commit()
@@ -90,7 +91,7 @@ def note_geocode(note_id: int):
     else:
         db.session.rollback()
         flash(result.message, "error")
-    return redirect(url_for("admin.note_edit", note_id=note.id))
+    return redirect(next_url)
 
 
 @bp.route("/notes/<int:note_id>/delete", methods=["POST"])

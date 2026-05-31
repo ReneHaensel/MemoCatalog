@@ -28,6 +28,7 @@
       <div class="mt-4 flex flex-wrap gap-3">
         <form method="post" action="{{ url_for('admin.note_geocode', note_id=note.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ url_for('admin.note_edit', note_id=note.id) }}">
           <button class="rounded border border-emerald-700 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50">Echte Koordinaten berechnen</button>
         </form>
         <form method="post" action="{{ url_for('admin.note_delete', note_id=note.id) }}">

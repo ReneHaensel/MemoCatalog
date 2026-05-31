@@ -178,6 +178,12 @@ def collect(note_id: int):
         quantity=1,
     )
     db.session.add(entry)
+    if variant_id is None:
+        WishlistEntry.query.filter_by(
+            user_id=current_user.id,
+            base_note_id=note.id,
+            variant_id=None,
+        ).delete()
     try:
         db.session.commit()
         flash("Eintrag wurde zur Sammlung hinzugefuegt.", "success")
@@ -209,6 +215,11 @@ def toggle_collection(note_id: int):
                 quantity=1,
             )
         )
+        WishlistEntry.query.filter_by(
+            user_id=current_user.id,
+            base_note_id=note.id,
+            variant_id=None,
+        ).delete()
     elif not enabled and entry is not None:
         db.session.delete(entry)
 
@@ -227,6 +238,12 @@ def wishlist(note_id: int):
     variant_id = request.form.get("variant_id", type=int) or None
     if variant_id:
         Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
+    if variant_id is None:
+        UserCollectionEntry.query.filter_by(
+            user_id=current_user.id,
+            base_note_id=note.id,
+            variant_id=None,
+        ).delete()
     db.session.add(
         WishlistEntry(
             user_id=current_user.id,
@@ -260,6 +277,11 @@ def toggle_wishlist(note_id: int):
 
     if enabled and entry is None:
         db.session.add(WishlistEntry(user_id=current_user.id, base_note_id=note.id))
+        UserCollectionEntry.query.filter_by(
+            user_id=current_user.id,
+            base_note_id=note.id,
+            variant_id=None,
+        ).delete()
     elif not enabled and entry is not None:
         db.session.delete(entry)
 

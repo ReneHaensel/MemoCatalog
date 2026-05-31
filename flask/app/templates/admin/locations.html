@@ -31,6 +31,7 @@
           <td class="px-4 py-3 text-right">
             <form method="post" action="{{ url_for('admin.note_geocode', note_id=note.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ url_for('admin.locations') }}">
               <button class="text-sm text-emerald-700 hover:underline">Berechnen</button>
             </form>
           </td>
