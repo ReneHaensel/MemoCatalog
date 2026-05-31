@@ -17,6 +17,7 @@ class TestConfig:
     ITEMS_PER_PAGE = 12
     UPLOAD_FOLDER = "/tmp/memocatalog-test-uploads"
     GEOCODE_CACHE_PATH = "/tmp/memocatalog-test-geocode.json"
+    GEOCODE_JSON_CACHE_ENABLED = False
     GEOCODING_PROVIDER = "nominatim"
     GEOCODING_USER_AGENT = "MemoCatalog tests"
     GEOCODING_TIMEOUT = 1
@@ -130,6 +131,28 @@ def test_geocode_note_uses_real_provider(monkeypatch):
         assert geocode_note(note, force=True) is True
         assert note.latitude == 52.516275
         assert note.longitude == 13.377704
+
+
+def test_geocode_note_does_not_require_json_cache(monkeypatch):
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        note = BaseNote(
+            title="No File Cache",
+            country="Deutschland",
+            region_or_city="Berlin",
+            issue_year=2026,
+        )
+        db.session.add(note)
+        db.session.flush()
+
+        monkeypatch.setattr(
+            "app.services.geocoding._lookup_real_coordinates",
+            lambda query: (52.516275, 13.377704),
+        )
+
+        assert geocode_note(note, force=True) is True
+        assert note.latitude == 52.516275
 
 
 def test_geocode_note_falls_back_to_title_query(monkeypatch):

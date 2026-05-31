@@ -55,16 +55,21 @@ def build_geocode_queries(note: BaseNote) -> list[str]:
 
 
 def _sync_json_cache(query: str, latitude: float, longitude: float) -> None:
+    if not current_app.config["GEOCODE_JSON_CACHE_ENABLED"]:
+        return
     path = Path(current_app.config["GEOCODE_CACHE_PATH"])
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data: dict[str, dict[str, float]] = {}
-    if path.exists():
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            data = {}
-    data[query] = {"latitude": latitude, "longitude": longitude}
-    path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        data: dict[str, dict[str, float]] = {}
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                data = {}
+        data[query] = {"latitude": latitude, "longitude": longitude}
+        path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+    except OSError as exc:
+        current_app.logger.warning("Could not write geocode JSON cache %s: %s", path, exc)
 
 
 def _rate_limit() -> None:

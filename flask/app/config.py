@@ -15,11 +15,21 @@ def normalize_database_url(database_url: str) -> str:
     return database_url
 
 
+def get_database_url() -> str:
+    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    if database_url:
+        return normalize_database_url(database_url)
+    if os.getenv("VERCEL"):
+        raise RuntimeError(
+            "DATABASE_URL is not configured. Set DATABASE_URL to your Neon Postgres "
+            "connection string in Vercel Project Settings -> Environment Variables."
+        )
+    return f"sqlite:///{BASE_DIR / 'memocatalog.db'}"
+
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
-    SQLALCHEMY_DATABASE_URI = normalize_database_url(
-        os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'memocatalog.db'}")
-    )
+    SQLALCHEMY_DATABASE_URI = get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", str(BASE_DIR / "app" / "static" / "uploads"))
     WTF_CSRF_TIME_LIMIT = None
@@ -27,6 +37,11 @@ class Config:
     GEOCODE_CACHE_PATH = os.getenv(
         "GEOCODE_CACHE_PATH", str(BASE_DIR / "data" / "geocode_cache.json")
     )
+    GEOCODE_JSON_CACHE_ENABLED = os.getenv("GEOCODE_JSON_CACHE_ENABLED", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     GEOCODING_PROVIDER = os.getenv("GEOCODING_PROVIDER", "nominatim")
     GEOCODING_USER_AGENT = os.getenv(
         "GEOCODING_USER_AGENT",
