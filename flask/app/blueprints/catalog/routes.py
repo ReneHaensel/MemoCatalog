@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 
 from app.extensions import db
 from app.models import BaseNote, UserCollectionEntry, Variant, WishlistEntry
@@ -85,7 +86,7 @@ def index():
     state = _catalog_state_from_args()
     session[CATALOG_STATE_KEY] = state
 
-    query = BaseNote.query.filter_by(is_active=True)
+    query = BaseNote.query.options(selectinload(BaseNote.variants)).filter_by(is_active=True)
     search = str(state["q"])
     country = str(state["country"])
     year = str(state["year"])
@@ -121,6 +122,8 @@ def index():
     years = [row[0] for row in db.session.query(BaseNote.issue_year).distinct().order_by(BaseNote.issue_year.desc()) if row[0]]
     collected_note_ids: set[int] = set()
     wishlist_note_ids: set[int] = set()
+    collected_variant_ids: set[int] = set()
+    wishlist_variant_ids: set[int] = set()
     if current_user.is_authenticated and not current_user.is_admin:
         collected_note_ids = {
             row[0]
@@ -133,6 +136,22 @@ def index():
             row[0]
             for row in db.session.query(WishlistEntry.base_note_id)
             .filter_by(user_id=current_user.id, variant_id=None)
+            .distinct()
+            .all()
+        }
+        collected_variant_ids = {
+            row[0]
+            for row in db.session.query(UserCollectionEntry.variant_id)
+            .filter(UserCollectionEntry.user_id == current_user.id)
+            .filter(UserCollectionEntry.variant_id.is_not(None))
+            .distinct()
+            .all()
+        }
+        wishlist_variant_ids = {
+            row[0]
+            for row in db.session.query(WishlistEntry.variant_id)
+            .filter(WishlistEntry.user_id == current_user.id)
+            .filter(WishlistEntry.variant_id.is_not(None))
             .distinct()
             .all()
         }
@@ -149,6 +168,8 @@ def index():
         address=address,
         collected_note_ids=collected_note_ids,
         wishlist_note_ids=wishlist_note_ids,
+        collected_variant_ids=collected_variant_ids,
+        wishlist_variant_ids=wishlist_variant_ids,
     )
 
 
@@ -178,12 +199,11 @@ def collect(note_id: int):
         quantity=1,
     )
     db.session.add(entry)
-    if variant_id is None:
-        WishlistEntry.query.filter_by(
-            user_id=current_user.id,
-            base_note_id=note.id,
-            variant_id=None,
-        ).delete()
+    WishlistEntry.query.filter_by(
+        user_id=current_user.id,
+        base_note_id=note.id,
+        variant_id=variant_id,
+    ).delete()
     try:
         db.session.commit()
         flash("Eintrag wurde zur Sammlung hinzugefuegt.", "success")
@@ -200,11 +220,14 @@ def toggle_collection(note_id: int):
         return redirect(_catalog_return_url())
 
     note = BaseNote.query.get_or_404(note_id)
+    variant_id = request.form.get("variant_id", type=int) or None
+    if variant_id:
+        Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
     enabled = request.form.get("enabled") == "1"
     entry = UserCollectionEntry.query.filter_by(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=None,
+        variant_id=variant_id,
     ).first()
 
     if enabled and entry is None:
@@ -212,13 +235,14 @@ def toggle_collection(note_id: int):
             UserCollectionEntry(
                 user_id=current_user.id,
                 base_note_id=note.id,
+                variant_id=variant_id,
                 quantity=1,
             )
         )
         WishlistEntry.query.filter_by(
             user_id=current_user.id,
             base_note_id=note.id,
-            variant_id=None,
+            variant_id=variant_id,
         ).delete()
     elif not enabled and entry is not None:
         db.session.delete(entry)
@@ -238,12 +262,11 @@ def wishlist(note_id: int):
     variant_id = request.form.get("variant_id", type=int) or None
     if variant_id:
         Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
-    if variant_id is None:
-        UserCollectionEntry.query.filter_by(
-            user_id=current_user.id,
-            base_note_id=note.id,
-            variant_id=None,
-        ).delete()
+    UserCollectionEntry.query.filter_by(
+        user_id=current_user.id,
+        base_note_id=note.id,
+        variant_id=variant_id,
+    ).delete()
     db.session.add(
         WishlistEntry(
             user_id=current_user.id,
@@ -268,19 +291,28 @@ def toggle_wishlist(note_id: int):
         return redirect(_catalog_return_url())
 
     note = BaseNote.query.get_or_404(note_id)
+    variant_id = request.form.get("variant_id", type=int) or None
+    if variant_id:
+        Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
     enabled = request.form.get("enabled") == "1"
     entry = WishlistEntry.query.filter_by(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=None,
+        variant_id=variant_id,
     ).first()
 
     if enabled and entry is None:
-        db.session.add(WishlistEntry(user_id=current_user.id, base_note_id=note.id))
+        db.session.add(
+            WishlistEntry(
+                user_id=current_user.id,
+                base_note_id=note.id,
+                variant_id=variant_id,
+            )
+        )
         UserCollectionEntry.query.filter_by(
             user_id=current_user.id,
             base_note_id=note.id,
-            variant_id=None,
+            variant_id=variant_id,
         ).delete()
     elif not enabled and entry is not None:
         db.session.delete(entry)

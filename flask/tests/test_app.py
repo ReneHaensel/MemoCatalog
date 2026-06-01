@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import create_app
 from app.extensions import db
-from app.models import BaseNote, GeocodeCache, User, UserCollectionEntry, WishlistEntry
+from app.models import BaseNote, GeocodeCache, User, UserCollectionEntry, Variant, WishlistEntry
 from app.services.geocoding import geocode_all_notes, geocode_missing_notes, geocode_note
 from app.services.imports import create_import_preview, run_import_batch
 
@@ -323,6 +323,134 @@ def test_admin_detail_shows_edit_instead_of_collection_actions():
         assert b"Hauptschein bearbeiten" in response.data
         assert b"Hauptschein sammeln" not in response.data
         assert b"Zur Wunschliste" not in response.data
+
+
+def test_detail_page_renders_variant_front_and_back_images():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        note = BaseNote(title="Variant Note", country="Deutschland", issue_year=2026)
+        db.session.add(note)
+        db.session.flush()
+        db.session.add(
+            Variant(
+                base_note_id=note.id,
+                variant_type="Specimen",
+                catalog_number="V-1",
+                front_img="https://example.test/variant-front.jpg",
+                back_img="https://example.test/variant-back.jpg",
+            )
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get(f"/catalog/{note.id}")
+
+        assert response.status_code == 200
+        assert b"Variante Vorderseite" in response.data
+        assert b"Variante Rueckseite" in response.data
+        assert b"https://example.test/variant-front.jpg" in response.data
+        assert b"https://example.test/variant-back.jpg" in response.data
+
+
+def test_catalog_table_renders_variant_rows_below_base_note():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        note = BaseNote(
+            title="Base With Variants",
+            country="Deutschland",
+            issue_year=2026,
+            catalog_number="BASE-1",
+        )
+        db.session.add(note)
+        db.session.flush()
+        db.session.add_all(
+            [
+                Variant(
+                    base_note_id=note.id,
+                    variant_type="Specimen",
+                    catalog_number="BASE-1-S",
+                ),
+                Variant(
+                    base_note_id=note.id,
+                    variant_type="Aufdruck",
+                    catalog_number="BASE-1-A",
+                ),
+            ]
+        )
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get("/catalog?view=table")
+
+        assert response.status_code == 200
+        assert b"Base With Variants" in response.data
+        assert b"Specimen" in response.data
+        assert b"BASE-1-S" in response.data
+        assert b"Aufdruck" in response.data
+        assert b"BASE-1-A" in response.data
+        assert response.data.count(b"Variante</span>") == 2
+
+
+def test_catalog_table_variant_toggles_and_detail_wishlist_action():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        user = User(username="collector", email="collector@example.test")
+        user.set_password("collector123")
+        note = BaseNote(title="Toggle Variant Note", country="Deutschland", issue_year=2026)
+        db.session.add_all([user, note])
+        db.session.flush()
+        variant = Variant(
+            base_note_id=note.id,
+            variant_type="Specimen",
+            catalog_number="TV-1-S",
+        )
+        db.session.add(variant)
+        db.session.commit()
+
+        client = app.test_client()
+        client.post("/auth/login", data={"username": "collector", "password": "collector123"})
+
+        response = client.get("/catalog?view=table")
+        assert response.status_code == 200
+        assert b'TV-1-S' in response.data
+        assert f'name="variant_id" value="{variant.id}"'.encode() in response.data
+
+        response = client.post(
+            f"/catalog/{note.id}/toggle-collection",
+            data={"enabled": "1", "variant_id": str(variant.id), "next": "/catalog?view=table"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        assert UserCollectionEntry.query.filter_by(
+            user_id=user.id,
+            base_note_id=note.id,
+            variant_id=variant.id,
+        ).count() == 1
+
+        response = client.post(
+            f"/catalog/{note.id}/toggle-wishlist",
+            data={"enabled": "1", "variant_id": str(variant.id), "next": "/catalog?view=table"},
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        assert WishlistEntry.query.filter_by(
+            user_id=user.id,
+            base_note_id=note.id,
+            variant_id=variant.id,
+        ).count() == 1
+        assert UserCollectionEntry.query.filter_by(
+            user_id=user.id,
+            base_note_id=note.id,
+            variant_id=variant.id,
+        ).count() == 0
+
+        detail_response = client.get(f"/catalog/{note.id}")
+        assert detail_response.status_code == 200
+        assert b"Zur Wunschliste" in detail_response.data
+        assert f'value="{variant.id}"'.encode() in detail_response.data
 
 
 def test_catalog_user_can_toggle_collection_and_wishlist_from_index():
