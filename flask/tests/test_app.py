@@ -47,6 +47,8 @@ def test_navigation_for_guest_only_shows_catalog_menu_item():
         assert response.status_code == 200
         assert b"Katalog" in response.data
         assert b"Hilfe" in response.data
+        assert b"flex-wrap" in response.data
+        assert b"sm:h-16" in response.data
         assert b'href="/collection"' not in response.data
         assert b'href="/collection/wishlist"' not in response.data
         assert b'href="/stats"' not in response.data
