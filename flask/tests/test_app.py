@@ -46,6 +46,7 @@ def test_navigation_for_guest_only_shows_catalog_menu_item():
 
         assert response.status_code == 200
         assert b"Katalog" in response.data
+        assert b"Hilfe" in response.data
         assert b'href="/collection"' not in response.data
         assert b'href="/collection/wishlist"' not in response.data
         assert b'href="/stats"' not in response.data
@@ -68,8 +69,39 @@ def test_navigation_for_logged_in_user_shows_private_menu_items():
         assert response.status_code == 200
         assert b"Katalog" in response.data
         assert b"Sammlung" in response.data
-        assert b"Wunschliste" in response.data
-        assert b"Stats" in response.data
+        assert b'href="/collection/wishlist"' not in response.data
+        assert b'href="/stats"' in response.data
+        assert b"collector" in response.data
+
+
+def test_help_page_is_public():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        client = app.test_client()
+        response = client.get("/help")
+
+        assert response.status_code == 200
+        assert b"Hilfe" in response.data
+        assert b"Katalog" in response.data
+
+
+def test_navigation_for_admin_shows_username_once_linked_to_admin_dashboard():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        admin = User(username="admin", email="admin@example.test", is_admin=True)
+        admin.set_password("admin123")
+        db.session.add(admin)
+        db.session.commit()
+
+        client = app.test_client()
+        client.post("/auth/login", data={"username": "admin", "password": "admin123"})
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert response.data.count(b">admin</span>") == 1
+        assert b'href="/admin"' in response.data
 
 
 def test_homepage_renders_world_map_locations():
@@ -470,7 +502,7 @@ def test_catalog_user_can_toggle_collection_and_wishlist_from_index():
         assert response.status_code == 200
         assert b"Status" in response.data
         assert b"Sammlung" in response.data
-        assert b"Wunschliste" in response.data
+        assert b"toggle-wishlist" in response.data
 
         response = client.post(
             f"/catalog/{note.id}/toggle-collection",
@@ -507,40 +539,89 @@ def test_catalog_user_can_toggle_collection_and_wishlist_from_index():
         ).count() == 0
 
 
-def test_wishlist_page_uses_new_name_and_old_missing_url_redirects():
+def test_wishlist_is_rendered_as_collection_filter_and_old_urls_redirect():
     app = create_app(TestConfig)
     with app.app_context():
         db.create_all()
         user = User(username="collector", email="collector@example.test")
         user.set_password("collector123")
-        collected_note = BaseNote(title="Collected Tile", country="Deutschland", issue_year=2026)
-        wishlist_note = BaseNote(title="Wishlist Tile", country="Frankreich", issue_year=2026)
-        open_note = BaseNote(title="Open Tile", country="Italien", issue_year=2026)
+        collected_note = BaseNote(
+            title="Collected Tile",
+            country="Deutschland",
+            issue_year=2026,
+            catalog_number="B-200",
+        )
+        wishlist_note = BaseNote(
+            title="Wishlist Tile",
+            country="Frankreich",
+            issue_year=2026,
+            catalog_number="A-100",
+        )
+        open_note = BaseNote(
+            title="Open Tile",
+            country="Italien",
+            issue_year=2026,
+            catalog_number="C-300",
+        )
         db.session.add_all([user, collected_note, wishlist_note, open_note])
         db.session.flush()
         db.session.add(
             UserCollectionEntry(user_id=user.id, base_note_id=collected_note.id, quantity=1)
         )
-        db.session.add(WishlistEntry(user_id=user.id, base_note_id=wishlist_note.id))
+        wishlist_entry = WishlistEntry(
+            user_id=user.id,
+            base_note_id=wishlist_note.id,
+            notes="Noch besorgen",
+        )
+        db.session.add(wishlist_entry)
         db.session.commit()
 
         client = app.test_client()
         client.post("/auth/login", data={"username": "collector", "password": "collector123"})
-        response = client.get("/collection/wishlist")
+        response = client.get("/collection?filter=wishlist")
 
         assert response.status_code == 200
         assert b"Wunschliste" in response.data
         assert b"Fehlliste" not in response.data
-        assert b"Collected Tile" in response.data
         assert b"Wishlist Tile" in response.data
-        assert b"Open Tile" in response.data
-        assert b"border-emerald-500" in response.data
-        assert b"border-sky-400" in response.data
-        assert b"border-slate-300" in response.data
+        assert b"Noch besorgen" in response.data
+        assert b"Sammeln" in response.data
+        assert b"Loeschen" not in response.data
+        assert b"Collected Tile" not in response.data
+        assert b"Open Tile" not in response.data
+
+        all_response = client.get("/collection?filter=all")
+        assert all_response.status_code == 200
+        assert b"Collected Tile" in all_response.data
+        assert b"Wishlist Tile" in all_response.data
+        assert b"Sammlung" in all_response.data
+        assert b"Wunschliste" in all_response.data
+        assert b"Katalognummer" in all_response.data
+        assert all_response.data.index(b"A-100") < all_response.data.index(b"B-200")
+        assert b"bg-emerald-50" in all_response.data
+        assert b"bg-orange-50" in all_response.data
+        assert b"Open Tile" not in all_response.data
 
         redirect_response = client.get("/collection/missing")
         assert redirect_response.status_code == 302
-        assert redirect_response.headers["Location"].endswith("/collection/wishlist")
+        assert redirect_response.headers["Location"].endswith("/collection?filter=wishlist")
+
+        legacy_redirect_response = client.get("/collection/wishlist")
+        assert legacy_redirect_response.status_code == 302
+        assert legacy_redirect_response.headers["Location"].endswith("/collection?filter=wishlist")
+
+        collect_response = client.post(
+            f"/collection/wishlist/{wishlist_entry.id}/collect",
+            follow_redirects=False,
+        )
+        assert collect_response.status_code == 302
+        assert collect_response.headers["Location"].endswith("/collection")
+        assert WishlistEntry.query.count() == 0
+        assert UserCollectionEntry.query.filter_by(
+            user_id=user.id,
+            base_note_id=wishlist_note.id,
+            variant_id=None,
+        ).count() == 1
 
 
 def test_catalog_state_is_remembered_for_detail_back_link():

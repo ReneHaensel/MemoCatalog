@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Hilfe · MemoCatalog{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold">Hilfe</h1>
+    <p class="mt-2 text-sm leading-6 text-slate-600">Kurze Orientierung fuer die wichtigsten Bereiche von MemoCatalog.</p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <section class="rounded-lg border border-slate-200 bg-white p-5">
+      <h2 class="font-semibold">MemoEuro Eigenschaften</h2>
+      
+      <div class="grid flex gap-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="max-w-sm overflow-hidden rounded border border-slate-200 bg-slate-100">
+          <img src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1780354104/ChatGPT_Image_2._Juni_2026_00_22_46_nduosh.png" alt="" class="h-full w-full object-cover">
+        </div>
+        <div class="max-w-sm overflow-hidden rounded border border-slate-200  bg-slate-100">
+          <img src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1780354104/ChatGPT_Image_2._Juni_2026_00_26_46_eu7cvu.png" alt="" class="h-full w-full object-cover">
+        </div>
+        <div class="max-w-sm overflow-hidden rounded border border-slate-200 bg-slate-100">
+          <img src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1780354104/ChatGPT_Image_2._Juni_2026_00_46_58_jjjlxb.png" alt="" class="h-full w-full object-cover">
+        </div>
+        <div class="max-w-sm overflow-hidden rounded border border-slate-200 bg-slate-100">
+          <img src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1780356642/ChatGPT_Image_2._Juni_2026_00_56_08_uzd3wt.png" alt="" class="h-full w-full object-cover">
+        </div>
+        <div class="max-w-sm overflow-hidden rounded border border-slate-200 bg-slate-100">
+          <img src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1780356641/ChatGPT_Image_2._Juni_2026_01_01_42_gwubfg.png" alt="" class="h-full w-full object-cover">
+        </div>
+        <div class="max-w-sm overflow-hidden rounded border border-slate-200 bg-slate-100">
+          <img src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1780356641/ChatGPT_Image_2._Juni_2026_01_19_37_jw67pg.png" alt="" class="h-full w-full object-cover">
+        </div>
+      </div>
+        
+      
+    </section>
+    <aside>
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="text-base font-semibold">Legende</h2>
+        <p class="mt-2 text-xs leading-6 text-slate-600">Katalognr. der Varianten</p>
+          <div class="mt-4 grid gap-3">
+            <div class="flex justify-between"><span>S = <strong>Specimen</strong></span></div>
+            <div class="flex justify-between"><span>G = <strong>Gelocht</strong></span></div>
+            <div class="flex justify-between"><span>A = <strong>Aufdruck</strong></span></div>
+            <div class="flex justify-between"><span>P = <strong>Probe</strong></span></div>
+            <div class="flex justify-between"><span>J = <strong>Jubiläumsausgabe</strong></span></div>
+          </div>
+    </aside>
+
+    {% if current_user.is_authenticated %}
+      <section class="rounded-lg border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold">Sammlung</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-600">In der Sammlung werden Hauptscheine, Varianten und Wunschlisteneintraege gemeinsam verwaltet. Ein Wunsch kann direkt ueber den Button Sammeln in die Sammlung uebernommen werden.</p>
+      </section>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

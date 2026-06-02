@@ -20,17 +20,18 @@
           <span>MemoCatalog</span>
         </a>
         <a class="text-sm hover:text-emerald-700" href="{{ url_for('catalog.index') }}">Katalog</a>
+        
         {% if current_user.is_authenticated %}
           <a class="text-sm hover:text-emerald-700" href="{{ url_for('collection.index') }}">Sammlung</a>
-          <a class="text-sm hover:text-emerald-700" href="{{ url_for('collection.wishlist') }}">Wunschliste</a>
-          <a class="text-sm hover:text-emerald-700" href="{{ url_for('main.stats') }}">Stats</a>
-          {% if current_user.is_admin %}
-            <a class="text-sm hover:text-emerald-700" href="{{ url_for('admin.dashboard') }}">Admin</a>
-          {% endif %}
         {% endif %}
+        <a class="text-sm hover:text-emerald-700" href="{{ url_for('main.help') }}">Hilfe</a>
         <div class="ml-auto flex items-center gap-3">
           {% if current_user.is_authenticated %}
-            <span class="text-sm text-slate-500">{{ current_user.username }}</span>
+            {% if current_user.is_admin %}
+              <a class="text-sm hover:text-emerald-700" href="{{ url_for('admin.dashboard') }}"><span class="text-sm text-slate-500">{{ current_user.username }}</span></a>
+            {% else %}
+              <a class="text-sm hover:text-emerald-700" href="{{ url_for('main.stats') }}"><span class="text-sm text-slate-500">{{ current_user.username }}</span></a>
+            {% endif %}
             <form method="post" action="{{ url_for('auth.logout') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100">Logout</button>

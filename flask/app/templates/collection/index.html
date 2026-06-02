@@ -3,37 +3,80 @@
 <div class="mb-5 flex items-center justify-between gap-3">
   <div>
     <h1 class="text-2xl font-semibold">Sammlung</h1>
-    <p class="text-sm text-slate-600">{{ entries|length }} Eintraege</p>
+    <p class="text-sm text-slate-600">{{ entries|length }} {{ "Wunschlisteneintraege" if filter_mode == "wishlist" else "Eintraege" }}</p>
   </div>
-  <a href="{{ url_for('collection.new') }}" class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">Eintrag anlegen</a>
+  {% if filter_mode != "wishlist" %}
+    <a href="{{ url_for('collection.new') }}" class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">Eintrag anlegen</a>
+  {% endif %}
 </div>
 <div class="mb-4 flex gap-2">
-  {% for key, label in [('all','Alle'),('base','Nur Hauptscheine'),('variants','Nur Varianten')] %}
+  {% for key, label in [('all','Alle'),('base','Nur Hauptscheine'),('variants','Nur Varianten'),('wishlist','Wunschliste')] %}
     <a class="rounded border px-3 py-1.5 text-sm {{ 'bg-slate-900 text-white' if filter_mode == key else 'bg-white' }}" href="{{ url_for('collection.index', filter=key) }}">{{ label }}</a>
   {% endfor %}
 </div>
 <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
   <table class="min-w-full divide-y divide-slate-200 text-sm">
     <thead class="bg-slate-100 text-left">
-      <tr><th class="px-4 py-3">Schein</th><th class="px-4 py-3">Typ</th><th class="px-4 py-3">Zustand</th><th class="px-4 py-3">Menge</th><th class="px-4 py-3"></th></tr>
+      {% if filter_mode == "wishlist" %}
+        <tr><th class="px-4 py-3">Katalognummer</th><th class="px-4 py-3">Schein</th><th class="px-4 py-3">Typ</th><th class="px-4 py-3">Notiz</th><th class="px-4 py-3"></th></tr>
+      {% elif filter_mode == "all" %}
+        <tr><th class="px-4 py-3">Katalognummer</th><th class="px-4 py-3">Schein</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Typ</th><th class="px-4 py-3">Info</th><th class="px-4 py-3"></th></tr>
+      {% else %}
+        <tr><th class="px-4 py-3">Katalognummer</th><th class="px-4 py-3">Schein</th><th class="px-4 py-3">Typ</th><th class="px-4 py-3">Zustand</th><th class="px-4 py-3">Menge</th><th class="px-4 py-3"></th></tr>
+      {% endif %}
     </thead>
     <tbody class="divide-y divide-slate-100">
-      {% for entry in entries %}
-        <tr>
-          <td class="px-4 py-3">{{ entry.base_note.title }}</td>
-          <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
-          <td class="px-4 py-3">{{ entry.condition or "-" }}</td>
-          <td class="px-4 py-3">{{ entry.quantity }}</td>
+      {% for item in entries %}
+        {% set entry = item.entry %}
+        {% set is_wishlist = item.source == "wishlist" %}
+        <tr class="{{ 'bg-orange-50 hover:bg-orange-100' if is_wishlist else 'bg-emerald-50 hover:bg-emerald-100' }}">
+          <td class="px-4 py-3 font-medium text-slate-700">{{ item.catalog_number or "-" }}</td>
+          <td class="px-4 py-3">
+            <a class="font-medium hover:text-emerald-700" href="{{ url_for('catalog.detail', note_id=entry.base_note.id) }}">{{ entry.base_note.title }}</a>
+          </td>
+          {% if filter_mode == "wishlist" %}
+            <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
+            <td class="px-4 py-3">{{ entry.notes or "-" }}</td>
+          {% elif filter_mode == "all" %}
+            <td class="px-4 py-3">
+              <span class="rounded px-2 py-0.5 text-xs font-medium {{ 'bg-orange-100 text-orange-800' if is_wishlist else 'bg-emerald-100 text-emerald-800' }}">
+                {{ "Wunschliste" if is_wishlist else "Sammlung" }}
+              </span>
+            </td>
+            <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
+            <td class="px-4 py-3">
+              {% if is_wishlist %}
+                {{ entry.notes or "-" }}
+              {% else %}
+                {{ entry.condition or "-" }} · {{ entry.quantity }}x
+              {% endif %}
+            </td>
+          {% else %}
+            <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
+            <td class="px-4 py-3">{{ entry.condition or "-" }}</td>
+            <td class="px-4 py-3">{{ entry.quantity }}</td>
+          {% endif %}
           <td class="px-4 py-3 text-right">
-            <a class="text-emerald-700 hover:underline" href="{{ url_for('collection.edit', entry_id=entry.id) }}">Bearbeiten</a>
-            <form class="ml-3 inline" method="post" action="{{ url_for('collection.delete', entry_id=entry.id) }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="text-red-700 hover:underline">Loeschen</button>
-            </form>
+            {% if is_wishlist %}
+              <form class="inline" method="post" action="{{ url_for('collection.wishlist_collect', entry_id=entry.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="text-emerald-700 hover:underline">Sammeln</button>
+              </form>
+            {% else %}
+              <a class="text-emerald-700 hover:underline" href="{{ url_for('collection.edit', entry_id=entry.id) }}">Bearbeiten</a>
+              <form class="ml-3 inline" method="post" action="{{ url_for('collection.delete', entry_id=entry.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="text-red-700 hover:underline">Loeschen</button>
+              </form>
+            {% endif %}
           </td>
         </tr>
       {% else %}
-        <tr><td class="px-4 py-6 text-slate-600" colspan="5">Noch keine Sammlungseintraege.</td></tr>
+        <tr>
+          <td class="px-4 py-6 text-slate-600" colspan="6">
+            {{ "Noch keine Wunschlisteneintraege." if filter_mode == "wishlist" else "Noch keine Sammlungseintraege." }}
+          </td>
+        </tr>
       {% endfor %}
     </tbody>
   </table>

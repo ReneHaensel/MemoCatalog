@@ -113,3 +113,8 @@ def index():
 @bp.route("/stats")
 def stats():
     return render_template("stats/index.html", stats=build_stats())
+
+
+@bp.route("/help")
+def help():
+    return render_template("help.html")
