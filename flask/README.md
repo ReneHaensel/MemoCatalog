@@ -50,11 +50,11 @@ python -m pytest
 ## Funktionen
 
 - Oeffentlicher Katalog mit Suche, Filter, Sortierung, Pagination sowie Grid- und Tabellenansicht
-- Detailseite mit Bildern, Varianten, GPS-Status und Sammel-/Fehllistenaktionen
+- Detailseite mit Bildern, Variantentyp, GPS-Status und Sammel-/Wunschlistenaktionen
 - Registrierung, Login, Logout und Admin-Rolle
-- Sammlung mit Hauptscheinen oder konkreten Varianten
+- Sammlung mit Hauptscheinen inklusive optionalem Variantentyp
 - Statistik-Dashboard
-- Admin-Dashboard, Hauptschein- und Variantenpflege, Nutzer, Sammlungen, Standortuebersicht
+- Admin-Dashboard, Hauptscheinpflege, Nutzer, Sammlungen, Standortuebersicht
 - Excel-Import mit persistenter Vorschau, Warnungen und Import-Job-Status
 - Echtes Geocoding ueber Nominatim/OpenStreetMap mit Datenbank- und JSON-Cache
 

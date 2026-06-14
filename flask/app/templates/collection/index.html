@@ -10,7 +10,7 @@
   {% endif %}
 </div>
 <div class="mb-4 flex gap-2">
-  {% for key, label in [('all','Alle'),('base','Nur Hauptscheine'),('variants','Nur Varianten'),('wishlist','Wunschliste')] %}
+  {% for key, label in [('all','Alle'),('base','Ohne Variante'),('variants','Mit Variante'),('wishlist','Wunschliste')] %}
     <a class="rounded border px-3 py-1.5 text-sm {{ 'bg-slate-900 text-white' if filter_mode == key else 'bg-white' }}" href="{{ url_for('collection.index', filter=key) }}">{{ label }}</a>
   {% endfor %}
 </div>
@@ -35,7 +35,7 @@
             <a class="font-medium hover:text-emerald-700" href="{{ url_for('catalog.detail', note_id=entry.base_note.id) }}">{{ entry.base_note.title }}</a>
           </td>
           {% if filter_mode == "wishlist" %}
-            <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
+            <td class="px-4 py-3">{{ item.variant_type }}</td>
             <td class="px-4 py-3">{{ entry.notes or "-" }}</td>
           {% elif filter_mode == "all" %}
             <td class="px-4 py-3">
@@ -43,7 +43,7 @@
                 {{ "Wunschliste" if is_wishlist else "Sammlung" }}
               </span>
             </td>
-            <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
+            <td class="px-4 py-3">{{ item.variant_type }}</td>
             <td class="px-4 py-3">
               {% if is_wishlist %}
                 {{ entry.notes or "-" }}
@@ -52,7 +52,7 @@
               {% endif %}
             </td>
           {% else %}
-            <td class="px-4 py-3">{{ entry.variant.variant_type if entry.variant else "Hauptschein" }}</td>
+            <td class="px-4 py-3">{{ item.variant_type }}</td>
             <td class="px-4 py-3">{{ entry.condition or "-" }}</td>
             <td class="px-4 py-3">{{ entry.quantity }}</td>
           {% endif %}

@@ -30,6 +30,7 @@ class BaseNote(TimestampMixin, db.Model):
     region_or_city = db.Column(db.String(160), nullable=True, index=True)
     address = db.Column(db.String(255), nullable=True, index=True)
     issue_year = db.Column(db.Integer, nullable=True, index=True)
+    variant_type = db.Column(db.String(50), nullable=True, index=True)
     front_img = db.Column(db.String(500), nullable=True)
     back_img = db.Column(db.String(500), nullable=True)
     latitude = db.Column(db.Float, nullable=True)
@@ -37,9 +38,6 @@ class BaseNote(TimestampMixin, db.Model):
     catalog_number = db.Column(db.String(100), unique=True, nullable=True, index=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
 
-    variants = db.relationship(
-        "Variant", back_populates="base_note", cascade="all, delete-orphan"
-    )
     collection_entries = db.relationship(
         "UserCollectionEntry", back_populates="base_note", cascade="all, delete-orphan"
     )
@@ -50,23 +48,6 @@ class BaseNote(TimestampMixin, db.Model):
     @property
     def has_coordinates(self) -> bool:
         return self.latitude is not None and self.longitude is not None
-
-
-class Variant(TimestampMixin, db.Model):
-    __tablename__ = "variants"
-
-    id = db.Column(db.Integer, primary_key=True)
-    base_note_id = db.Column(
-        db.Integer, db.ForeignKey("base_notes.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    variant_type = db.Column(db.String(50), nullable=False, index=True)
-    catalog_number = db.Column(db.String(100), nullable=True, index=True)
-    front_img = db.Column(db.String(500), nullable=True)
-    back_img = db.Column(db.String(500), nullable=True)
-
-    base_note = db.relationship("BaseNote", back_populates="variants")
-    collection_entries = db.relationship("UserCollectionEntry", back_populates="variant")
-    wishlist_entries = db.relationship("WishlistEntry", back_populates="variant")
 
 
 class GeocodeCache(TimestampMixin, db.Model):

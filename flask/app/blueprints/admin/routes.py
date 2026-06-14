@@ -8,8 +8,8 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app.extensions import db
-from app.forms import BaseNoteForm, VariantForm
-from app.models import BaseNote, User, UserCollectionEntry, Variant, WishlistEntry
+from app.forms import BaseNoteForm
+from app.models import BaseNote, User, UserCollectionEntry, WishlistEntry
 from app.services.geocoding import geocode_all_notes, geocode_missing_notes, geocode_note, geocode_note_result
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -33,7 +33,7 @@ def admin_required(view: F) -> F:
 def dashboard():
     stats = {
         "notes": BaseNote.query.count(),
-        "variants": Variant.query.count(),
+        "notes_with_variant": BaseNote.query.filter(BaseNote.variant_type.is_not(None), BaseNote.variant_type != "").count(),
         "users": User.query.count(),
         "admins": User.query.filter_by(is_admin=True).count(),
         "collection_entries": UserCollectionEntry.query.count(),
@@ -58,6 +58,7 @@ def note_new():
     if form.validate_on_submit():
         note = BaseNote()
         form.populate_obj(note)
+        note.variant_type = note.variant_type or None
         db.session.add(note)
         db.session.commit()
         flash("Hauptschein angelegt.", "success")
@@ -72,6 +73,7 @@ def note_edit(note_id: int):
     form = BaseNoteForm(obj=note)
     if form.validate_on_submit():
         form.populate_obj(note)
+        note.variant_type = note.variant_type or None
         db.session.commit()
         flash("Hauptschein aktualisiert.", "success")
         return redirect(url_for("catalog.detail", note_id=note.id))
@@ -102,45 +104,6 @@ def note_delete(note_id: int):
     db.session.commit()
     flash("Hauptschein geloescht.", "success")
     return redirect(url_for("admin.notes"))
-
-
-@bp.route("/notes/<int:note_id>/variants/new", methods=["GET", "POST"])
-@admin_required
-def variant_new(note_id: int):
-    note = BaseNote.query.get_or_404(note_id)
-    form = VariantForm()
-    if form.validate_on_submit():
-        variant = Variant(base_note=note)
-        form.populate_obj(variant)
-        db.session.add(variant)
-        db.session.commit()
-        flash("Variante angelegt.", "success")
-        return redirect(url_for("admin.note_edit", note_id=note.id))
-    return render_template("admin/variant_form.html", form=form, note=note, title="Variante anlegen")
-
-
-@bp.route("/variants/<int:variant_id>/edit", methods=["GET", "POST"])
-@admin_required
-def variant_edit(variant_id: int):
-    variant = Variant.query.get_or_404(variant_id)
-    form = VariantForm(obj=variant)
-    if form.validate_on_submit():
-        form.populate_obj(variant)
-        db.session.commit()
-        flash("Variante aktualisiert.", "success")
-        return redirect(url_for("admin.note_edit", note_id=variant.base_note_id))
-    return render_template("admin/variant_form.html", form=form, note=variant.base_note, title="Variante bearbeiten")
-
-
-@bp.route("/variants/<int:variant_id>/delete", methods=["POST"])
-@admin_required
-def variant_delete(variant_id: int):
-    variant = Variant.query.get_or_404(variant_id)
-    note_id = variant.base_note_id
-    db.session.delete(variant)
-    db.session.commit()
-    flash("Variante geloescht.", "success")
-    return redirect(url_for("admin.note_edit", note_id=note_id))
 
 
 @bp.route("/users")

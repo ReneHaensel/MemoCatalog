@@ -25,6 +25,10 @@ EXPECTED_COLUMNS = [
     "Adresse",
 ]
 
+OPTIONAL_COLUMNS = [
+    "Variante",
+]
+
 
 @dataclass
 class ParsedRows:
@@ -45,7 +49,7 @@ def parse_excel(file_storage) -> ParsedRows:
     rows: list[dict[str, Any]] = []
     for row_number, values in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
         raw = dict(zip(headers, values))
-        row = {column: raw.get(column) for column in EXPECTED_COLUMNS}
+        row = {column: raw.get(column) for column in EXPECTED_COLUMNS + OPTIONAL_COLUMNS}
         row["_row_number"] = row_number
         rows.append(row)
     return ParsedRows(rows=rows, warnings=warnings)
@@ -76,6 +80,7 @@ def normalize_row(row: dict[str, Any]) -> dict[str, Any]:
         "front_img": clean_text(row.get("Schein_Front_URL")) or clean_text(row.get("Schein_Front_Datei")),
         "back_img": clean_text(row.get("Schein_Back_URL")) or clean_text(row.get("Schein_Back_Datei")),
         "issue_year": normalize_year(row.get("Jahr")),
+        "variant_type": clean_text(row.get("Variante")),
         "address": clean_text(row.get("Adresse")),
         "_row_number": row.get("_row_number"),
     }
@@ -140,7 +145,16 @@ def create_import_preview(filename: str, rows: list[dict[str, Any]], warnings: l
 
 
 def _note_changed(note: BaseNote, item: dict[str, Any]) -> bool:
-    fields = ["title", "country", "region_or_city", "address", "issue_year", "front_img", "back_img"]
+    fields = [
+        "title",
+        "country",
+        "region_or_city",
+        "address",
+        "issue_year",
+        "variant_type",
+        "front_img",
+        "back_img",
+    ]
     return any(getattr(note, field) != item.get(field) for field in fields)
 
 
@@ -150,7 +164,16 @@ def _import_row(item: dict[str, Any]) -> None:
         note = BaseNote(catalog_number=item["catalog_number"], is_active=True)
         db.session.add(note)
 
-    for field in ["title", "country", "region_or_city", "address", "issue_year", "front_img", "back_img"]:
+    for field in [
+        "title",
+        "country",
+        "region_or_city",
+        "address",
+        "issue_year",
+        "variant_type",
+        "front_img",
+        "back_img",
+    ]:
         setattr(note, field, item.get(field))
 
     if (

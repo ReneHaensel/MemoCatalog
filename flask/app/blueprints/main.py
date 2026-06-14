@@ -1,20 +1,25 @@
 from __future__ import annotations
 
+import random
+
 from flask import Blueprint, render_template, url_for
 from flask_login import current_user
 from sqlalchemy import distinct, func
 
 from app.extensions import db
-from app.models import BaseNote, UserCollectionEntry, Variant, WishlistEntry
+from app.models import BaseNote, UserCollectionEntry, WishlistEntry
 
 bp = Blueprint("main", __name__)
 
 
 def build_stats() -> dict[str, object]:
     total_notes = BaseNote.query.filter_by(is_active=True).count()
-    total_variants = Variant.query.count()
+    notes_with_variant = (
+        BaseNote.query.filter_by(is_active=True)
+        .filter(BaseNote.variant_type.is_not(None), BaseNote.variant_type != "")
+        .count()
+    )
     collected_notes = 0
-    collected_variants = 0
     countries: list[tuple[str, int]] = []
     years: list[tuple[int, int]] = []
     latest_entries: list[UserCollectionEntry] = []
@@ -22,12 +27,9 @@ def build_stats() -> dict[str, object]:
     if current_user.is_authenticated:
         entries = UserCollectionEntry.query.filter_by(user_id=current_user.id)
         collected_notes = (
-            entries.filter(UserCollectionEntry.variant_id.is_(None))
-            .with_entities(func.count(distinct(UserCollectionEntry.base_note_id)))
-            .scalar()
+            entries.with_entities(func.count(distinct(UserCollectionEntry.base_note_id))).scalar()
             or 0
         )
-        collected_variants = entries.filter(UserCollectionEntry.variant_id.is_not(None)).count()
         countries = (
             entries.join(BaseNote)
             .with_entities(BaseNote.country, func.count(UserCollectionEntry.id))
@@ -47,9 +49,8 @@ def build_stats() -> dict[str, object]:
     progress = round((collected_notes / total_notes) * 100, 1) if total_notes else 0
     return {
         "total_notes": total_notes,
-        "total_variants": total_variants,
+        "notes_with_variant": notes_with_variant,
         "collected_notes": collected_notes,
-        "collected_variants": collected_variants,
         "progress": progress,
         "countries": countries,
         "years": years,
@@ -59,7 +60,13 @@ def build_stats() -> dict[str, object]:
 
 @bp.route("/")
 def index():
-    latest_notes = BaseNote.query.filter_by(is_active=True).order_by(BaseNote.created_at.desc()).limit(6).all()
+    slider_notes = (
+        BaseNote.query.filter_by(is_active=True)
+        .filter(BaseNote.front_img.is_not(None), BaseNote.front_img != "")
+        .all()
+    )
+    random.shuffle(slider_notes)
+    slider_notes = slider_notes[:12]
     location_notes = (
         BaseNote.query.filter_by(is_active=True)
         .filter(BaseNote.latitude.is_not(None), BaseNote.longitude.is_not(None))
@@ -105,7 +112,7 @@ def index():
     return render_template(
         "index.html",
         stats=build_stats(),
-        latest_notes=latest_notes,
+        slider_notes=slider_notes,
         map_locations=map_locations,
     )
 

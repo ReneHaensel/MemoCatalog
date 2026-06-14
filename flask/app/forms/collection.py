@@ -7,7 +7,6 @@ from wtforms.validators import DataRequired, Length, NumberRange, Optional
 
 class CollectionEntryForm(FlaskForm):
     base_note_id = SelectField("Hauptschein", coerce=int, validators=[DataRequired()])
-    variant_id = SelectField("Variante", coerce=int, validators=[Optional()])
     condition = StringField("Zustand", validators=[Optional(), Length(max=120)])
     quantity = IntegerField("Menge", default=1, validators=[DataRequired(), NumberRange(min=1)])
     personal_notes = TextAreaField("Persoenliche Notiz", validators=[Optional()])
@@ -17,6 +16,5 @@ class CollectionEntryForm(FlaskForm):
 
 class WishlistEntryForm(FlaskForm):
     base_note_id = SelectField("Hauptschein", coerce=int, validators=[DataRequired()])
-    variant_id = SelectField("Variante", coerce=int, validators=[Optional()])
     notes = TextAreaField("Notiz", validators=[Optional()])
     submit = SubmitField("Speichern")

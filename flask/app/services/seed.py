@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.extensions import db
-from app.models import BaseNote, User, Variant, VariantType
+from app.models import BaseNote, User, VariantType
 
 
 def seed_demo_data() -> None:
@@ -17,6 +17,7 @@ def seed_demo_data() -> None:
             "region_or_city": "Berlin",
             "address": "Pariser Platz, Berlin",
             "issue_year": 2016,
+            "variant_type": VariantType.SPECIMEN.value,
             "catalog_number": "DEAA0001",
         },
         {
@@ -41,12 +42,4 @@ def seed_demo_data() -> None:
         if note is None:
             note = BaseNote(**item, is_active=True)
             db.session.add(note)
-            db.session.flush()
-            db.session.add(
-                Variant(
-                    base_note_id=note.id,
-                    variant_type=VariantType.SPECIMEN.value,
-                    catalog_number=f"{item['catalog_number']}-S",
-                )
-            )
     db.session.commit()

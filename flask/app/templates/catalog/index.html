@@ -7,16 +7,17 @@
     <p class="text-sm text-slate-600">{{ notes.total }} aktive Hauptscheine</p>
   </div>
   <div class="flex gap-2">
-    <a class="rounded border px-3 py-2 text-sm {{ 'bg-slate-900 text-white' if view == 'grid' else 'bg-white' }}" href="{{ url_for('catalog.index', q=search, country=country, year=year, address=address, sort=sort, view='grid') }}">Grid</a>
-    <a class="rounded border px-3 py-2 text-sm {{ 'bg-slate-900 text-white' if view == 'table' else 'bg-white' }}" href="{{ url_for('catalog.index', q=search, country=country, year=year, address=address, sort=sort, view='table') }}">Tabelle</a>
+    <a class="rounded border px-3 py-2 text-sm {{ 'bg-slate-900 text-white' if view == 'grid' else 'bg-white' }}" href="{{ url_for('catalog.index', q=search, country=country, year=year, variant_type=variant_type, address=address, sort=sort, view='grid') }}">Grid</a>
+    <a class="rounded border px-3 py-2 text-sm {{ 'bg-slate-900 text-white' if view == 'table' else 'bg-white' }}" href="{{ url_for('catalog.index', q=search, country=country, year=year, variant_type=variant_type, address=address, sort=sort, view='table') }}">Tabelle</a>
     <form method="get">
       <input type="hidden" name="q" value="{{ search }}">
       <input type="hidden" name="country" value="{{ country }}">
       <input type="hidden" name="year" value="{{ year }}">
+      <input type="hidden" name="variant_type" value="{{ variant_type }}">
       <input type="hidden" name="address" value="{{ address }}">
       <input type="hidden" name="view" value="{{ view }}">
       <select class="rounded border border-slate-300 bg-white px-3 py-2 text-sm" name="sort" onchange="this.form.submit()">
-        {% for key, label in [('created','Neueste'),('year','Jahr'),('title','Titel'),('country','Land'),('address','Adresse'),('region','Region/Ort'),('catalog','Katalognummer')] %}
+        {% for key, label in [('created','Neueste'),('year','Jahr'),('title','Titel'),('country','Land'),('variant','Variante'),('address','Adresse'),('region','Region/Ort'),('catalog','Katalognummer')] %}
           <option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>

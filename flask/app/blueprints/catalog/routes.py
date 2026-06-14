@@ -4,10 +4,9 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
 
 from app.extensions import db
-from app.models import BaseNote, UserCollectionEntry, Variant, WishlistEntry
+from app.models import BaseNote, UserCollectionEntry, WishlistEntry
 
 bp = Blueprint("catalog", __name__, url_prefix="/catalog")
 
@@ -18,6 +17,7 @@ SORTS = {
     "country": BaseNote.country.asc(),
     "address": BaseNote.address.asc(),
     "region": BaseNote.region_or_city.asc(),
+    "variant": BaseNote.variant_type.asc(),
     "catalog": BaseNote.catalog_number.asc(),
     "created": BaseNote.created_at.desc(),
 }
@@ -27,6 +27,7 @@ CATALOG_DEFAULT_STATE = {
     "q": "",
     "country": "",
     "year": "",
+    "variant_type": "",
     "address": "",
     "view": "grid",
     "sort": "created",
@@ -50,6 +51,7 @@ def _catalog_state_from_args() -> dict[str, str | int]:
         "q": request.args.get("q", "").strip(),
         "country": request.args.get("country", "").strip(),
         "year": request.args.get("year", "").strip(),
+        "variant_type": request.args.get("variant_type", "").strip(),
         "address": request.args.get("address", "").strip(),
         "view": view,
         "sort": sort,
@@ -86,29 +88,32 @@ def index():
     state = _catalog_state_from_args()
     session[CATALOG_STATE_KEY] = state
 
-    query = BaseNote.query.options(selectinload(BaseNote.variants)).filter_by(is_active=True)
+    query = BaseNote.query.filter_by(is_active=True)
     search = str(state["q"])
     country = str(state["country"])
     year = str(state["year"])
+    variant_type = str(state["variant_type"])
     address = str(state["address"])
     view = str(state["view"])
     sort = str(state["sort"])
 
     if search:
         like = f"%{search}%"
-        query = query.outerjoin(Variant).filter(
+        query = query.filter(
             or_(
                 BaseNote.title.ilike(like),
                 BaseNote.address.ilike(like),
                 BaseNote.region_or_city.ilike(like),
                 BaseNote.catalog_number.ilike(like),
-                Variant.catalog_number.ilike(like),
+                BaseNote.variant_type.ilike(like),
             )
         )
     if country:
         query = query.filter(BaseNote.country == country)
     if year.isdigit():
         query = query.filter(BaseNote.issue_year == int(year))
+    if variant_type:
+        query = query.filter(BaseNote.variant_type == variant_type)
     if address:
         query = query.filter(BaseNote.address.ilike(f"%{address}%"))
 
@@ -118,40 +123,43 @@ def index():
         .order_by(SORTS.get(sort, BaseNote.created_at.desc()))
         .paginate(page=page, per_page=current_app.config["ITEMS_PER_PAGE"], error_out=False)
     )
-    countries = [row[0] for row in db.session.query(BaseNote.country).distinct().order_by(BaseNote.country)]
-    years = [row[0] for row in db.session.query(BaseNote.issue_year).distinct().order_by(BaseNote.issue_year.desc()) if row[0]]
+    countries = [
+        row[0]
+        for row in db.session.query(BaseNote.country)
+        .filter_by(is_active=True)
+        .distinct()
+        .order_by(BaseNote.country)
+    ]
+    years = [
+        row[0]
+        for row in db.session.query(BaseNote.issue_year)
+        .filter_by(is_active=True)
+        .distinct()
+        .order_by(BaseNote.issue_year.desc())
+        if row[0]
+    ]
+    variant_types = [
+        row[0]
+        for row in db.session.query(BaseNote.variant_type)
+        .filter_by(is_active=True)
+        .filter(BaseNote.variant_type.is_not(None), BaseNote.variant_type != "")
+        .distinct()
+        .order_by(BaseNote.variant_type)
+    ]
     collected_note_ids: set[int] = set()
     wishlist_note_ids: set[int] = set()
-    collected_variant_ids: set[int] = set()
-    wishlist_variant_ids: set[int] = set()
     if current_user.is_authenticated and not current_user.is_admin:
         collected_note_ids = {
             row[0]
             for row in db.session.query(UserCollectionEntry.base_note_id)
-            .filter_by(user_id=current_user.id, variant_id=None)
+            .filter_by(user_id=current_user.id)
             .distinct()
             .all()
         }
         wishlist_note_ids = {
             row[0]
             for row in db.session.query(WishlistEntry.base_note_id)
-            .filter_by(user_id=current_user.id, variant_id=None)
-            .distinct()
-            .all()
-        }
-        collected_variant_ids = {
-            row[0]
-            for row in db.session.query(UserCollectionEntry.variant_id)
-            .filter(UserCollectionEntry.user_id == current_user.id)
-            .filter(UserCollectionEntry.variant_id.is_not(None))
-            .distinct()
-            .all()
-        }
-        wishlist_variant_ids = {
-            row[0]
-            for row in db.session.query(WishlistEntry.variant_id)
-            .filter(WishlistEntry.user_id == current_user.id)
-            .filter(WishlistEntry.variant_id.is_not(None))
+            .filter_by(user_id=current_user.id)
             .distinct()
             .all()
         }
@@ -160,16 +168,16 @@ def index():
         notes=notes,
         countries=countries,
         years=years,
+        variant_types=variant_types,
         view=view,
         sort=sort,
         search=search,
         country=country,
         year=year,
+        variant_type=variant_type,
         address=address,
         collected_note_ids=collected_note_ids,
         wishlist_note_ids=wishlist_note_ids,
-        collected_variant_ids=collected_variant_ids,
-        wishlist_variant_ids=wishlist_variant_ids,
     )
 
 
@@ -189,20 +197,15 @@ def detail(note_id: int):
 @login_required
 def collect(note_id: int):
     note = BaseNote.query.get_or_404(note_id)
-    variant_id = request.form.get("variant_id", type=int) or None
-    if variant_id:
-        Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
     entry = UserCollectionEntry(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=variant_id,
         quantity=1,
     )
     db.session.add(entry)
     WishlistEntry.query.filter_by(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=variant_id,
     ).delete()
     try:
         db.session.commit()
@@ -220,14 +223,10 @@ def toggle_collection(note_id: int):
         return redirect(_catalog_return_url())
 
     note = BaseNote.query.get_or_404(note_id)
-    variant_id = request.form.get("variant_id", type=int) or None
-    if variant_id:
-        Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
     enabled = request.form.get("enabled") == "1"
     entry = UserCollectionEntry.query.filter_by(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=variant_id,
     ).first()
 
     if enabled and entry is None:
@@ -235,14 +234,12 @@ def toggle_collection(note_id: int):
             UserCollectionEntry(
                 user_id=current_user.id,
                 base_note_id=note.id,
-                variant_id=variant_id,
                 quantity=1,
             )
         )
         WishlistEntry.query.filter_by(
             user_id=current_user.id,
             base_note_id=note.id,
-            variant_id=variant_id,
         ).delete()
     elif not enabled and entry is not None:
         db.session.delete(entry)
@@ -259,19 +256,14 @@ def toggle_collection(note_id: int):
 @login_required
 def wishlist(note_id: int):
     note = BaseNote.query.get_or_404(note_id)
-    variant_id = request.form.get("variant_id", type=int) or None
-    if variant_id:
-        Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
     UserCollectionEntry.query.filter_by(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=variant_id,
     ).delete()
     db.session.add(
         WishlistEntry(
             user_id=current_user.id,
             base_note_id=note.id,
-            variant_id=variant_id,
             notes=request.form.get("notes"),
         )
     )
@@ -291,14 +283,10 @@ def toggle_wishlist(note_id: int):
         return redirect(_catalog_return_url())
 
     note = BaseNote.query.get_or_404(note_id)
-    variant_id = request.form.get("variant_id", type=int) or None
-    if variant_id:
-        Variant.query.filter_by(id=variant_id, base_note_id=note.id).first_or_404()
     enabled = request.form.get("enabled") == "1"
     entry = WishlistEntry.query.filter_by(
         user_id=current_user.id,
         base_note_id=note.id,
-        variant_id=variant_id,
     ).first()
 
     if enabled and entry is None:
@@ -306,13 +294,11 @@ def toggle_wishlist(note_id: int):
             WishlistEntry(
                 user_id=current_user.id,
                 base_note_id=note.id,
-                variant_id=variant_id,
             )
         )
         UserCollectionEntry.query.filter_by(
             user_id=current_user.id,
             base_note_id=note.id,
-            variant_id=variant_id,
         ).delete()
     elif not enabled and entry is not None:
         db.session.delete(entry)

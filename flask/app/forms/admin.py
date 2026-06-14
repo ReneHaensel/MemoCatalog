@@ -13,6 +13,12 @@ class BaseNoteForm(FlaskForm):
     region_or_city = StringField("Region/Ort", validators=[Optional(), Length(max=160)])
     address = StringField("Adresse", validators=[Optional(), Length(max=255)])
     issue_year = IntegerField("Jahr", validators=[Optional()])
+    variant_type = SelectField(
+        "Variante",
+        choices=[("", "Keine Variante")] + [(item.value, item.value) for item in VariantType],
+        default="",
+        validators=[Optional()],
+    )
     catalog_number = StringField("Katalognummer", validators=[Optional(), Length(max=100)])
     front_img = StringField("Vorderbild URL", validators=[Optional(), Length(max=500)])
     back_img = StringField("Rueckbild URL", validators=[Optional(), Length(max=500)])
@@ -20,15 +26,3 @@ class BaseNoteForm(FlaskForm):
     longitude = FloatField("Longitude", validators=[Optional()])
     is_active = BooleanField("Aktiv", default=True)
     submit = SubmitField("Speichern")
-
-
-class VariantForm(FlaskForm):
-    variant_type = SelectField(
-        "Variantentyp",
-        choices=[(item.value, item.value) for item in VariantType],
-        validators=[DataRequired()],
-    )
-    catalog_number = StringField("Katalognummer", validators=[Optional(), Length(max=100)])
-    front_img = StringField("Vorderbild URL", validators=[Optional(), Length(max=500)])
-    back_img = StringField("Rueckbild URL", validators=[Optional(), Length(max=500)])
-    submit = SubmitField("Variante speichern")

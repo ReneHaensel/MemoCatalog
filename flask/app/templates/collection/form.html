@@ -5,7 +5,6 @@
   <form method="post" class="mt-5 grid gap-4">
     {{ form.hidden_tag() }}
     <div>{{ form.base_note_id.label(class="block text-sm font-medium") }}{{ form.base_note_id(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
-    <div>{{ form.variant_id.label(class="block text-sm font-medium") }}{{ form.variant_id(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
     <div class="grid gap-4 md:grid-cols-2">
       <div>{{ form.condition.label(class="block text-sm font-medium") }}{{ form.condition(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>
       <div>{{ form.quantity.label(class="block text-sm font-medium") }}{{ form.quantity(class="mt-1 w-full rounded border border-slate-300 px-3 py-2") }}</div>

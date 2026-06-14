@@ -8,9 +8,9 @@
         <th class="px-4 py-3">Titel</th>
         <th class="px-4 py-3">Land</th>
         <th class="px-4 py-3">Jahr</th>
+        <th class="px-4 py-3">Variante</th>
         <th class="px-4 py-3">Adresse/Ort</th>
         <th class="px-4 py-3">Nummer</th>
-        <th class="px-4 py-3">Varianten</th>
         <th class="px-4 py-3">GPS</th>
       </tr>
     </thead>
@@ -20,43 +20,17 @@
           {% if current_user.is_authenticated and not current_user.is_admin %}
             <td class="px-4 py-3">
               {% set toggle_mode = "table" %}
-              {% set toggle_variant = none %}
               {% include "partials/catalog_item_toggles.html" %}
             </td>
           {% endif %}
           <td class="px-4 py-3"><a class="font-medium hover:text-emerald-700" href="{{ url_for('catalog.detail', note_id=note.id) }}">{{ note.title }}</a></td>
           <td class="px-4 py-3">{{ note.country }}</td>
           <td class="px-4 py-3">{{ note.issue_year or "-" }}</td>
+          <td class="px-4 py-3">{{ note.variant_type or "-" }}</td>
           <td class="px-4 py-3">{{ note.address or note.region_or_city or "-" }}</td>
           <td class="px-4 py-3">{{ note.catalog_number or "-" }}</td>
-          <td class="px-4 py-3">{{ note.variants|length }}</td>
           <td class="px-4 py-3">{{ "ja" if note.has_coordinates else "nein" }}</td>
         </tr>
-        {% for variant in note.variants %}
-          <tr class="bg-slate-50 text-slate-600">
-            {% if current_user.is_authenticated and not current_user.is_admin %}
-              <td class="px-4 py-2">
-                {% set toggle_mode = "table" %}
-                {% set toggle_variant = variant %}
-                {% include "partials/catalog_item_toggles.html" %}
-              </td>
-            {% endif %}
-            <td class="px-4 py-2">
-              <div class="ml-5 border-l-2 border-slate-300 pl-4">
-                <a class="font-medium text-slate-700 hover:text-emerald-700" href="{{ url_for('catalog.detail', note_id=note.id) }}">
-                  {{ variant.variant_type }}
-                </a>
-                <span class="ml-2 rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">Variante</span>
-              </div>
-            </td>
-            <td class="px-4 py-2">{{ note.country }}</td>
-            <td class="px-4 py-2">{{ note.issue_year or "-" }}</td>
-            <td class="px-4 py-2">{{ note.address or note.region_or_city or "-" }}</td>
-            <td class="px-4 py-2">{{ variant.catalog_number or "-" }}</td>
-            <td class="px-4 py-2">-</td>
-            <td class="px-4 py-2">{{ "ja" if note.has_coordinates else "nein" }}</td>
-          </tr>
-        {% endfor %}
       {% endfor %}
     </tbody>
   </table>

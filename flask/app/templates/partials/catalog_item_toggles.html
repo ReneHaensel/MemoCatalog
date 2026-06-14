@@ -1,13 +1,9 @@
 {% if current_user.is_authenticated and not current_user.is_admin %}
   {% set toggle_mode = toggle_mode|default("card") %}
-  {% set toggle_variant_id = toggle_variant.id if toggle_variant is defined and toggle_variant else none %}
   <div class="flex {{ 'flex-nowrap items-center gap-2 whitespace-nowrap' if toggle_mode == 'table' else 'flex-wrap gap-3' }} text-sm text-slate-700">
     <form method="post" action="{{ url_for('catalog.toggle_collection', note_id=note.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="next" value="{{ request.full_path }}">
-      {% if toggle_variant_id %}
-        <input type="hidden" name="variant_id" value="{{ toggle_variant_id }}">
-      {% endif %}
       <label class="inline-flex items-center gap-2">
         <input
           class="h-4 w-4 rounded border-slate-300 text-emerald-700"
@@ -15,7 +11,7 @@
           name="enabled"
           value="1"
           onchange="this.form.submit()"
-          {% if (toggle_variant_id and toggle_variant_id in collected_variant_ids) or (not toggle_variant_id and note.id in collected_note_ids) %}checked{% endif %}
+          {% if note.id in collected_note_ids %}checked{% endif %}
         >
         <span>{{ "S" if toggle_mode == "table" else "Sammlung" }}</span>
       </label>
@@ -23,9 +19,6 @@
     <form method="post" action="{{ url_for('catalog.toggle_wishlist', note_id=note.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="next" value="{{ request.full_path }}">
-      {% if toggle_variant_id %}
-        <input type="hidden" name="variant_id" value="{{ toggle_variant_id }}">
-      {% endif %}
       <label class="inline-flex items-center gap-2">
         <input
           class="h-4 w-4 rounded border-slate-300 text-slate-600"
@@ -33,7 +26,7 @@
           name="enabled"
           value="1"
           onchange="this.form.submit()"
-          {% if (toggle_variant_id and toggle_variant_id in wishlist_variant_ids) or (not toggle_variant_id and note.id in wishlist_note_ids) %}checked{% endif %}
+          {% if note.id in wishlist_note_ids %}checked{% endif %}
         >
         <span>{{ "W" if toggle_mode == "table" else "Wunschliste" }}</span>
       </label>

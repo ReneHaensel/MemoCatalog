@@ -87,23 +87,123 @@
   </div>
 </section>
 
-<section class="grid gap-6 lg:grid-cols-[1fr_340px]">
-  <div>
-    <div class="mb-5 flex items-center justify-between gap-4">
-      <div>
-        <h2 class="text-2xl font-semibold">Neue Hauptscheine</h2>
-        <p class="mt-1 text-slate-600">Zuletzt erfasste Katalogeintraege.</p>
-      </div>
-    </div>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {% for note in latest_notes %}
-        {% include "partials/note_card.html" %}
-      {% endfor %}
+<section class="space-y-6">
+  <div class="mb-5 flex items-center justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-semibold">Hauptscheine</h2>
+      <p class="mt-1 text-slate-600">Randomisierte Frontansichten aus dem Katalog.</p>
     </div>
   </div>
-  <aside>
-    {% include "partials/stats_panel.html" %}
-  </aside>
+  {% if slider_notes %}
+    <div id="home-note-slider" class="overflow-hidden rounded-lg border border-slate-200 bg-white" data-slide-count="{{ slider_notes|length }}">
+      <div class="relative">
+        <div class="aspect-[16/9] overflow-hidden bg-slate-100">
+          <div class="home-note-slider-track flex h-full transition-transform duration-700 ease-in-out">
+            {% for note in slider_notes %}
+              <a
+                href="{{ url_for('catalog.detail', note_id=note.id) }}"
+                class="home-note-slide block h-full w-full shrink-0"
+                data-slide-index="{{ loop.index0 }}"
+                aria-label="{{ note.title }}"
+              >
+                <img
+                  src="{{ note.front_img }}"
+                  alt="{{ note.title }}"
+                  loading="{{ 'eager' if loop.first else 'lazy' }}"
+                  decoding="async"
+                  class="h-full w-full object-cover"
+                >
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% if slider_notes|length > 1 %}
+          <button
+            type="button"
+            class="home-note-slider-prev absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl font-semibold shadow hover:bg-white"
+            aria-label="Vorheriger Hauptschein"
+          >&lsaquo;</button>
+          <button
+            type="button"
+            class="home-note-slider-next absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl font-semibold shadow hover:bg-white"
+            aria-label="Naechster Hauptschein"
+          >&rsaquo;</button>
+        {% endif %}
+      </div>
+      <div class="flex items-center justify-between gap-4 border-t border-slate-200 px-4 py-3">
+        <div>
+          {% for note in slider_notes %}
+            <div class="home-note-caption {{ '' if loop.first else 'hidden' }}" data-slide-index="{{ loop.index0 }}">
+              <a class="font-medium hover:text-emerald-700" href="{{ url_for('catalog.detail', note_id=note.id) }}">{{ note.title }}</a>
+              <p class="mt-1 text-sm text-slate-600">
+                {{ note.catalog_number or "ohne Nummer" }}{% if note.country %} &middot; {{ note.country }}{% endif %}{% if note.issue_year %} &middot; {{ note.issue_year }}{% endif %}
+              </p>
+            </div>
+          {% endfor %}
+        </div>
+        {% if slider_notes|length > 1 %}
+          <div class="flex shrink-0 gap-1.5">
+            {% for note in slider_notes %}
+              <button
+                type="button"
+                class="home-note-slider-dot h-2.5 w-2.5 rounded-full {{ 'bg-emerald-700' if loop.first else 'bg-slate-300' }}"
+                data-slide-index="{{ loop.index0 }}"
+                aria-label="Hauptschein {{ loop.index }}"
+              ></button>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">Noch keine Frontansichten vorhanden.</div>
+  {% endif %}
+
+  <div id="home-stats" class="grid gap-4 sm:grid-cols-3">
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+      <div class="flex items-center gap-4">
+        <div class="flex h-11 w-11 items-center justify-center rounded bg-emerald-50 text-emerald-700">
+          <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path d="M4 6.5h16M4 12h16M4 17.5h16"></path>
+            <path d="M7 4v16M17 4v16"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-slate-600">Hauptscheine</p>
+          <p class="text-2xl font-semibold">{{ stats.total_notes }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+      <div class="flex items-center gap-4">
+        <div class="flex h-11 w-11 items-center justify-center rounded bg-sky-50 text-sky-700">
+          <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path d="M6 8h12"></path>
+            <path d="M6 16h12"></path>
+            <path d="M8 4h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"></path>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-slate-600">Mit Variante</p>
+          <p class="text-2xl font-semibold">{{ stats.notes_with_variant }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-5">
+      <div class="flex items-center gap-4">
+        <div class="flex h-11 w-11 items-center justify-center rounded bg-amber-50 text-amber-700">
+          <svg aria-hidden="true" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path d="M12 21s6-5.3 6-11a6 6 0 0 0-12 0c0 5.7 6 11 6 11Z"></path>
+            <circle cx="12" cy="10" r="2"></circle>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-slate-600">GPS-Standorte</p>
+          <p class="text-2xl font-semibold">{{ map_locations|length }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 {% endblock %}
 {% block scripts %}
@@ -201,6 +301,62 @@
     window.setTimeout(function () {
       map.invalidateSize();
     }, 100);
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const slider = document.getElementById("home-note-slider");
+    if (!slider) {
+      return;
+    }
+
+    const slides = Array.from(slider.querySelectorAll(".home-note-slide"));
+    const track = slider.querySelector(".home-note-slider-track");
+    const captions = Array.from(slider.querySelectorAll(".home-note-caption"));
+    const dots = Array.from(slider.querySelectorAll(".home-note-slider-dot"));
+    const previousButton = slider.querySelector(".home-note-slider-prev");
+    const nextButton = slider.querySelector(".home-note-slider-next");
+    let activeIndex = 0;
+
+    const showSlide = function (nextIndex) {
+      if (!slides.length) {
+        return;
+      }
+
+      activeIndex = (nextIndex + slides.length) % slides.length;
+
+      if (track) {
+        track.style.transform = "translateX(-" + activeIndex * 100 + "%)";
+      }
+      captions.forEach(function (caption, index) {
+        caption.classList.toggle("hidden", index !== activeIndex);
+      });
+      dots.forEach(function (dot, index) {
+        dot.classList.toggle("bg-emerald-700", index === activeIndex);
+        dot.classList.toggle("bg-slate-300", index !== activeIndex);
+      });
+    };
+
+    if (previousButton) {
+      previousButton.addEventListener("click", function () {
+        showSlide(activeIndex - 1);
+      });
+    }
+    if (nextButton) {
+      nextButton.addEventListener("click", function () {
+        showSlide(activeIndex + 1);
+      });
+    }
+    dots.forEach(function (dot, index) {
+      dot.addEventListener("click", function () {
+        showSlide(index);
+      });
+    });
+
+    if (slides.length > 1) {
+      window.setInterval(function () {
+        showSlide(activeIndex + 1);
+      }, 6000);
+    }
   });
 </script>
 {% endblock %}

@@ -4,7 +4,7 @@
     <div class="flex justify-between"><span>Hauptscheine</span><strong>{{ stats.collected_notes }} / {{ stats.total_notes }}</strong></div>
     <div class="h-2 rounded bg-slate-100"><div class="h-2 rounded bg-emerald-600" style="width: {{ stats.progress }}%"></div></div>
     <div class="flex justify-between"><span>Fortschritt</span><strong>{{ stats.progress }}%</strong></div>
-    <div class="flex justify-between"><span>Varianten</span><strong>{{ stats.collected_variants }} / {{ stats.total_variants }}</strong></div>
+    <div class="flex justify-between"><span>Mit Variante</span><strong>{{ stats.notes_with_variant }}</strong></div>
   </div>
   {% if stats.latest_entries %}
     <h3 class="mt-6 text-sm font-semibold">Letzte Eintraege</h3>

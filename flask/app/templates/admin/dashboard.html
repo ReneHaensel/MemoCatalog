@@ -11,7 +11,7 @@
   </div>
 </div>
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  {% for label, value in [('Hauptscheine', stats.notes),('Varianten', stats.variants),('Nutzer', stats.users),('Admins', stats.admins),('Sammlungseintraege', stats.collection_entries),('Wunschliste', stats.wishlist_entries),('Mit GPS', stats.with_coordinates),('Ohne GPS', stats.without_coordinates)] %}
+  {% for label, value in [('Hauptscheine', stats.notes),('Mit Variante', stats.notes_with_variant),('Nutzer', stats.users),('Admins', stats.admins),('Sammlungseintraege', stats.collection_entries),('Wunschliste', stats.wishlist_entries),('Mit GPS', stats.with_coordinates),('Ohne GPS', stats.without_coordinates)] %}
     <div class="rounded-lg border bg-white p-5"><p class="text-sm text-slate-600">{{ label }}</p><p class="text-3xl font-semibold">{{ value }}</p></div>
   {% endfor %}
 </div>
