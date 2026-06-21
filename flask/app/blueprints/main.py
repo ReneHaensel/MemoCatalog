@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import random
-
 from flask import Blueprint, render_template, url_for
 from flask_login import current_user
 from sqlalchemy import distinct, func
@@ -63,10 +61,10 @@ def index():
     slider_notes = (
         BaseNote.query.filter_by(is_active=True)
         .filter(BaseNote.front_img.is_not(None), BaseNote.front_img != "")
+        .order_by(BaseNote.created_at.desc())
+        .limit(12)
         .all()
     )
-    random.shuffle(slider_notes)
-    slider_notes = slider_notes[:12]
     location_notes = (
         BaseNote.query.filter_by(is_active=True)
         .filter(BaseNote.latitude.is_not(None), BaseNote.longitude.is_not(None))
