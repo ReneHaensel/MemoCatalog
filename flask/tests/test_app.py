@@ -88,6 +88,41 @@ def test_help_page_is_public():
         assert b"Katalog" in response.data
 
 
+def test_static_footer_is_rendered_for_guests():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        client = app.test_client()
+        response = client.get("/")
+
+        assert response.status_code == 200
+        assert b"&copy; MemoCatalog" in response.data
+        assert b'href="/impressum"' not in response.data
+        assert b'href="/datenschutz"' not in response.data
+        assert b'href="/admin/footer"' not in response.data
+
+        assert client.get("/impressum").status_code == 404
+        assert client.get("/datenschutz").status_code == 404
+
+
+def test_footer_admin_page_is_removed():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        admin = User(username="admin", email="admin@example.test", is_admin=True)
+        admin.set_password("admin123")
+        db.session.add(admin)
+        db.session.commit()
+
+        client = app.test_client()
+        client.post("/auth/login", data={"username": "admin", "password": "admin123"})
+        dashboard_response = client.get("/admin")
+
+        assert dashboard_response.status_code == 200
+        assert b'href="/admin/footer"' not in dashboard_response.data
+        assert client.get("/admin/footer").status_code == 404
+
+
 def test_navigation_for_admin_shows_username_once_linked_to_admin_dashboard():
     app = create_app(TestConfig)
     with app.app_context():

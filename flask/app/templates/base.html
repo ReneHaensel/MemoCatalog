@@ -8,7 +8,7 @@
     <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
     {% block head_extra %}{% endblock %}
   </head>
-  <body class="min-h-screen bg-slate-50 text-slate-900">
+  <body class="flex min-h-screen flex-col bg-slate-50 text-slate-900">
     <header class="border-b border-slate-200 bg-white">
       <nav class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:py-4">
         <a href="{{ url_for('main.index') }}" class="flex shrink-0 items-center gap-2 text-base font-semibold sm:text-lg">
@@ -44,7 +44,7 @@
         </div>
       </nav>
     </header>
-    <main class="mx-auto max-w-7xl px-4 py-6">
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div class="mb-5 space-y-2">
@@ -56,6 +56,22 @@
       {% endwith %}
       {% block content %}{% endblock %}
     </main>
+    <footer class="border-t border-slate-200 bg-white">
+      <div class="mx-auto flex max-w-7xl flex-col items-center gap-3 px-4 py-6 text-center text-xs text-slate-500">
+        <p>&copy; MemoCatalog 2026</p>
+
+        <div class="flex flex-col items-center gap-2">
+          <p>supported by</p>
+          <a href="https://www.memoeuro24.de/" target="_blank" rel="noopener noreferrer" class="inline-flex">
+            <img
+              src="https://res.cloudinary.com/dasaqgtxq/image/upload/q_auto/f_auto/v1782068453/Memoeuro24_logo_szfvey.png"
+              alt="Supported by"
+              class="h-10 w-auto object-contain"
+            >
+          </a>
+        </div>
+      </div>
+    </footer>
     {% block scripts %}{% endblock %}
   </body>
 </html>

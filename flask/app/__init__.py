@@ -45,7 +45,9 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     def inject_globals() -> dict[str, object]:
         from app.models import VariantType
 
-        return {"variant_types": [item.value for item in VariantType]}
+        return {
+            "variant_types": [item.value for item in VariantType],
+        }
 
     @app.cli.command("init-db")
     def init_db_command() -> None:
