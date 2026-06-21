@@ -444,6 +444,31 @@ def test_catalog_table_renders_filters_and_sorts_variant_type():
         assert b'<option value="variant" selected' in response.data
 
 
+def test_catalog_defaults_to_structured_catalog_number_sort():
+    app = create_app(TestConfig)
+    with app.app_context():
+        db.create_all()
+        notes = [
+            BaseNote(title="Second Number", country="Deutschland", catalog_number="EAAA002/1"),
+            BaseNote(title="First A1", country="Deutschland", catalog_number="EAAA001/1"),
+            BaseNote(title="First A1 Variant", country="Deutschland", catalog_number="EAAA001/1-S"),
+            BaseNote(title="First B1", country="Deutschland", catalog_number="EAAB001/1"),
+            BaseNote(title="First A2", country="Deutschland", catalog_number="EAAA001/2"),
+        ]
+        db.session.add_all(notes)
+        db.session.commit()
+
+        client = app.test_client()
+        response = client.get("/catalog?view=table")
+
+        assert response.status_code == 200
+        assert b'<option value="catalog" selected' in response.data
+        assert response.data.index(b"EAAA001/1") < response.data.index(b"EAAA001/2")
+        assert response.data.index(b"EAAA001/1-S") < response.data.index(b"EAAA001/2")
+        assert response.data.index(b"EAAA001/2") < response.data.index(b"EAAB001/1")
+        assert response.data.index(b"EAAB001/1") < response.data.index(b"EAAA002/1")
+
+
 def test_catalog_table_toggles_variant_type_note_and_detail_wishlist_action():
     app = create_app(TestConfig)
     with app.app_context():

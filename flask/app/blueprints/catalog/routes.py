@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import re
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
+from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
@@ -9,6 +12,21 @@ from app.extensions import db
 from app.models import BaseNote, UserCollectionEntry, WishlistEntry
 
 bp = Blueprint("catalog", __name__, url_prefix="/catalog")
+
+
+CATALOG_NUMBER_PATTERN = re.compile(
+    r"^EAA(?P<letter>[A-Z])(?P<number>\d+)(?:/(?P<subnumber>\d+))?",
+    re.IGNORECASE,
+)
+
+
+class ListPagination(Pagination):
+    def _query_items(self) -> list[BaseNote]:
+        items = self._query_args["items"]
+        return items[self._query_offset : self._query_offset + self.per_page]
+
+    def _query_count(self) -> int:
+        return len(self._query_args["items"])
 
 
 SORTS = {
@@ -30,7 +48,7 @@ CATALOG_DEFAULT_STATE = {
     "variant_type": "",
     "address": "",
     "view": "grid",
-    "sort": "created",
+    "sort": "catalog",
     "page": 1,
 }
 
@@ -78,6 +96,28 @@ def _catalog_return_url() -> str:
     return request.form.get("next") or url_for("catalog.index", **_saved_catalog_state())
 
 
+def catalog_number_sort_key(catalog_number: str | None) -> tuple[int, int, str, int, str]:
+    value = (catalog_number or "").strip().upper()
+    match = CATALOG_NUMBER_PATTERN.match(value)
+    if not match:
+        return (1, 0, "", 0, value)
+    return (
+        0,
+        int(match.group("number")),
+        match.group("letter").upper(),
+        int(match.group("subnumber") or 0),
+        value,
+    )
+
+
+def paginate_catalog_sorted(query, page: int, per_page: int) -> ListPagination:
+    items = sorted(
+        query.distinct().all(),
+        key=lambda note: catalog_number_sort_key(note.catalog_number),
+    )
+    return ListPagination(page=page, per_page=per_page, error_out=False, items=items)
+
+
 @bp.route("")
 def index():
     if not request.args:
@@ -118,11 +158,15 @@ def index():
         query = query.filter(BaseNote.address.ilike(f"%{address}%"))
 
     page = int(state["page"])
-    notes = (
-        query.distinct()
-        .order_by(SORTS.get(sort, BaseNote.created_at.desc()))
-        .paginate(page=page, per_page=current_app.config["ITEMS_PER_PAGE"], error_out=False)
-    )
+    per_page = current_app.config["ITEMS_PER_PAGE"]
+    if sort == "catalog":
+        notes = paginate_catalog_sorted(query, page=page, per_page=per_page)
+    else:
+        notes = (
+            query.distinct()
+            .order_by(SORTS.get(sort, BaseNote.created_at.desc()))
+            .paginate(page=page, per_page=per_page, error_out=False)
+        )
     countries = [
         row[0]
         for row in db.session.query(BaseNote.country)
