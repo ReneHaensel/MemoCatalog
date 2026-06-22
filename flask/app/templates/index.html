@@ -4,37 +4,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
-  .home-map-marker {
-    align-items: center;
-    background: #2563eb;
-    border: 3px solid #ffffff;
-    border-radius: 9999px;
-    box-shadow: 0 8px 20px rgb(15 23 42 / 0.25);
-    display: flex;
-    height: 24px;
-    justify-content: center;
-    width: 24px;
-  }
-
-  .home-map-marker::after {
-    background: #2563eb;
-    bottom: -6px;
-    content: "";
-    height: 10px;
-    position: absolute;
-    transform: rotate(45deg);
-    width: 10px;
-  }
-
-  .home-map-marker.is-collected,
-  .home-map-marker.is-collected::after {
-    background: #047857;
-  }
-
-  .home-map-marker.is-wishlist,
-  .home-map-marker.is-wishlist::after {
-    background: #64748b;
-  }
+  
 
   .home-map-popup a {
     color: #047838;
@@ -247,18 +217,26 @@
       : L.layerGroup();
 
     const markerIcon = function (status) {
-      const markerClass = status === "collected"
+      /*const markerClass = status === "collected"
         ? "is-collected"
         : status === "wishlist"
           ? "is-wishlist"
-          : "is-default";
+          : "is-default";*/
+      const iconUrl = status === "collected"
+        ? "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png"
+        : status === "wishlist"
+          ? "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png"
+          : "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png";    
 
-      return L.divIcon({
-        className: "",
-        html: '<span class="home-map-marker ' + markerClass + '"></span>',
-        iconAnchor: [12, 29],
-        iconSize: [24, 29],
-        popupAnchor: [0, -28],
+      return L.icon({
+        /*className: "",
+        html: '<span class="home-map-marker ' + markerClass + '"></span>',*/
+        iconUrl: iconUrl,
+        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+        iconAnchor: [12, 41],
+        iconSize: [25, 41],
+        popupAnchor: [1, -34],
+        shadowSize:[41,41],
       });
     };
 

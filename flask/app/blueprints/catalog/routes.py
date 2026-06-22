@@ -234,7 +234,27 @@ def detail(note_id: int):
         if _has_non_default_state(catalog_state)
         else url_for("catalog.index")
     )
-    return render_template("catalog/detail.html", note=note, catalog_back_url=catalog_back_url)
+    collection_status = "default"
+    if current_user.is_authenticated:
+        is_collected = UserCollectionEntry.query.filter_by(
+            user_id=current_user.id,
+            base_note_id=note.id,
+        ).first()
+        is_wishlist = WishlistEntry.query.filter_by(
+            user_id=current_user.id,
+            base_note_id=note.id,
+        ).first()
+        if is_collected:
+            collection_status = "collected"
+        elif is_wishlist:
+            collection_status = "wishlist"
+
+    return render_template(
+        "catalog/detail.html",
+        note=note,
+        catalog_back_url=catalog_back_url,
+        collection_status=collection_status,
+    )
 
 
 @bp.route("/<int:note_id>/collect", methods=["POST"])

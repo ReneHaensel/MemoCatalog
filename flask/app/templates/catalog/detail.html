@@ -82,6 +82,7 @@
           data-latitude="{{ note.latitude }}"
           data-longitude="{{ note.longitude }}"
           data-title="{{ note.title }}"
+          data-status="{{ collection_status }}"
         >
           <div id="note-location-fallback" class="absolute inset-0 flex items-center justify-center">
             <div class="relative flex h-full w-full items-center justify-center">
@@ -110,6 +111,7 @@
         const latitude = Number(element.dataset.latitude);
         const longitude = Number(element.dataset.longitude);
         const title = element.dataset.title || "Standort";
+        const status = element.dataset.status || "default";
         const fallback = document.getElementById("note-location-fallback");
 
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
@@ -129,24 +131,25 @@
           maxZoom: 19,
         }).addTo(map);
 
-        /*const markerIcon = L.divIcon({
-          className: "",
-          html: '<span style="font-size: 32px;">📍</span>',
-          iconAnchor: [14, 32],
-          iconSize: [28, 32],
-          popupAnchor: [0, -32],
-        });*/
+        const markerIcon = function (status) {
+          const iconUrl = status === "collected"
+            ? "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png"
+            : status === "wishlist"
+              ? "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png"
+              : "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png";    
 
-        const markerIcon = new L.Icon({
-          iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
+          return L.icon({
+            iconUrl: iconUrl,
+            shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+            iconAnchor: [12, 41],
+            iconSize: [25, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41],
+            shadowAnchor: [12, 41],
           });
+        };
 
-        L.marker([latitude, longitude], { icon: markerIcon })
+        L.marker([latitude, longitude], { icon: markerIcon(status) })
           .addTo(map)
           .bindPopup(title);
 
