@@ -153,18 +153,18 @@
       <h1 class="mt-2 text-3xl font-semibold">MemoCatalog</h1>
       <p class="mt-3 text-sm leading-6 text-slate-600">Alle erfassten Standorte auf einer Weltkarte, mit direktem Sprung in den Katalog.</p>
       <div class="mt-5 flex flex-wrap gap-2">
-        <a href="{{ url_for('catalog.index') }}" class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">Katalog oeffnen</a>
+        <a href="{{ url_for('catalog.index') }}" class="rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800">Katalog öffnen</a>
         {% if current_user.is_authenticated and current_user.is_admin %}
           <a href="{{ url_for('admin.locations') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100">Standorte pflegen</a>
         {% endif %}
       </div>
       {% if not map_locations %}
-        <p class="mt-5 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Noch keine Koordinaten vorhanden. Admins koennen sie unter Standorte berechnen.</p>
+        <p class="mt-5 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Noch keine Koordinaten vorhanden. Admins können sie unter Standorte berechnen.</p>
       {% elif current_user.is_authenticated %}
         <div class="mt-5 grid gap-2 text-sm text-slate-600">
-          <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-emerald-700"></span> In deiner Sammlung</div>
-          <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-slate-500"></span> Auf deiner Wunschliste</div>
-          <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-blue-600"></span> Noch offen</div>
+          <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-green-600"></span> In deiner Sammlung</div>
+          <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-gray-500"></span> Auf deiner Wunschliste</div>
+          <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-blue-500"></span> Noch offen</div>
         </div>
       {% endif %}
     </div>
