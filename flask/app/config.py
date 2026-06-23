@@ -31,6 +31,7 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
     SQLALCHEMY_DATABASE_URI = get_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True , "pool_recycle": 300,}
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", str(BASE_DIR / "app" / "static" / "uploads"))
     WTF_CSRF_TIME_LIMIT = None
     ITEMS_PER_PAGE = int(os.getenv("ITEMS_PER_PAGE", "12"))
